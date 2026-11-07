@@ -1,0 +1,39 @@
+@model Paye.Web.Modules.Notas.EditNotaInputModel
+@{
+    ViewData["Title"] = "Editar nota";
+}
+
+<section class="card">
+    <div class="section-header">
+        <h1>Editar nota</h1>
+        <a asp-controller="Notas" asp-action="Index" class="btn btn-secondary">Volver al listado</a>
+    </div>
+
+    <form asp-controller="Notas" asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="RowVersion" />
+
+        <div class="form-group">
+            <label asp-for="Titulo">Título</label>
+            <input asp-for="Titulo" class="form-control" maxlength="150" required />
+            <span asp-validation-for="Titulo" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Contenido">Contenido</label>
+            <textarea asp-for="Contenido" class="form-control" rows="6" maxlength="4000" required></textarea>
+            <span asp-validation-for="Contenido" class="text-danger"></span>
+        </div>
+
+        <div class="form-check">
+            <input asp-for="Archivada" type="checkbox" />
+            <label asp-for="Archivada">Nota archivada</label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            <a asp-controller="Notas" asp-action="Index" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</section>

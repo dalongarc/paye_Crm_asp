@@ -1,0 +1,126 @@
+@model Paye.Web.Modules.Notas.NotasIndexViewModel
+@{
+    ViewData["Title"] = "Notas";
+}
+
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h1>Notas internas</h1>
+            <p class="text-muted">Módulo autocontenido de ejemplo con búsqueda, paginación, concurrencia optimista y borrado lógico.</p>
+        </div>
+        @if (Model.CanCreate)
+        {
+            <a asp-controller="Notas" asp-action="Create" class="btn btn-primary">Nueva nota</a>
+        }
+    </div>
+
+    <form method="get" asp-controller="Notas" asp-action="Index" class="filter-bar">
+        <div class="filter-group">
+            <label for="q">Buscar</label>
+            <input type="search" id="q" name="q" value="@Model.SearchTerm" class="form-control" placeholder="Título o contenido..." />
+        </div>
+        <div class="filter-group">
+            <label for="estado">Estado</label>
+            <select id="estado" name="estado" class="form-select">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.EstadoFiltro))">Todas</option>
+                <option value="activas" selected="@(string.Equals(Model.EstadoFiltro, "activas", StringComparison.OrdinalIgnoreCase))">Activas</option>
+                <option value="archivadas" selected="@(string.Equals(Model.EstadoFiltro, "archivadas", StringComparison.OrdinalIgnoreCase))">Archivadas</option>
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-secondary">Filtrar</button>
+            @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || !string.IsNullOrWhiteSpace(Model.EstadoFiltro))
+            {
+                <a asp-controller="Notas" asp-action="Index" class="btn btn-secondary">Limpiar</a>
+            }
+        </div>
+    </form>
+
+    @if (Model.PagedResult.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <p class="text-muted">No se encontraron notas con los criterios actuales.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Título</th>
+                        <th>Contenido</th>
+                        <th>Estado</th>
+                        <th>Actualizada (Madrid)</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var nota in Model.PagedResult.Items)
+                    {
+                        var lastDate = nota.UpdatedAtUtc ?? nota.CreatedAtUtc;
+                        <tr>
+                            <td><strong>@nota.Titulo</strong></td>
+                            <td>
+                                @(nota.Contenido.Length > 120 ? nota.Contenido[..120] + "…" : nota.Contenido)
+                            </td>
+                            <td>
+                                @if (nota.Archivada)
+                                {
+                                    <span class="badge">Archivada</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success">Activa</span>
+                                }
+                            </td>
+                            <td>@MadridTimeConverter.FormatSpanishDateTime(lastDate)</td>
+                            <td>
+                                <div class="inline-form">
+                                    @if (Model.CanEdit)
+                                    {
+                                        <a asp-controller="Notas" asp-action="Edit" asp-route-id="@nota.Id" class="btn btn-secondary btn-sm">Editar</a>
+                                    }
+                                    @if (Model.CanDelete)
+                                    {
+                                        <a asp-controller="Notas" asp-action="Delete" asp-route-id="@nota.Id" class="btn btn-danger btn-sm">Borrar</a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.PagedResult.TotalPages > 1)
+        {
+            <nav class="pagination-nav" aria-label="Paginación de notas">
+                <span class="text-muted">
+                    Página @Model.PagedResult.Page de @Model.PagedResult.TotalPages (@Model.PagedResult.TotalCount notas)
+                </span>
+                <div class="pagination-links">
+                    @if (Model.PagedResult.Page > 1)
+                    {
+                        <a asp-controller="Notas"
+                           asp-action="Index"
+                           asp-route-q="@Model.SearchTerm"
+                           asp-route-estado="@Model.EstadoFiltro"
+                           asp-route-page="@(Model.PagedResult.Page - 1)"
+                           class="btn btn-secondary btn-sm">Anterior</a>
+                    }
+                    @if (Model.PagedResult.Page < Model.PagedResult.TotalPages)
+                    {
+                        <a asp-controller="Notas"
+                           asp-action="Index"
+                           asp-route-q="@Model.SearchTerm"
+                           asp-route-estado="@Model.EstadoFiltro"
+                           asp-route-page="@(Model.PagedResult.Page + 1)"
+                           class="btn btn-secondary btn-sm">Siguiente</a>
+                    }
+                </div>
+            </nav>
+        }
+    }
+</section>

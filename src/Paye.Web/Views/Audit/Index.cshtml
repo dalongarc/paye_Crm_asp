@@ -1,0 +1,52 @@
+@model IReadOnlyList<Paye.Core.Auditing.AuditLogEntry>
+@using Paye.Core.Common
+@{
+    ViewData["Title"] = "Registro de auditoría";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Registro de auditoría</h1>
+        <p class="text-secondary mb-0">Trazabilidad de acciones críticas (fechas almacenadas en UTC y mostradas en Europe/Madrid).</p>
+    </div>
+    <a asp-controller="Users" asp-action="Index" class="btn btn-outline-secondary btn-sm">Volver a Usuarios</a>
+</div>
+
+<div class="card paye-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Fecha (Europe/Madrid)</th>
+                        <th>Acción</th>
+                        <th>Entidad</th>
+                        <th>Actor</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary py-4">No hay eventos de auditoría registrados todavía.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4 small text-nowrap">@MadridTimeConverter.FormatSpanishDateTime(item.OccurredAtUtc)</td>
+                                <td><code class="text-dark">@item.Action</code></td>
+                                <td class="small">@item.EntityName @(item.EntityId is not null ? $"({item.EntityId})" : "")</td>
+                                <td class="small">@(item.ActorEmail ?? item.ActorId)</td>
+                                <td class="small text-secondary">@item.Summary</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,98 @@
+@model Paye.Web.Modules.Facturacion.RectifyInvoiceFormViewModel
+@using Paye.Core.Invoicing
+@{
+    ViewData["Title"] = $"Rectificar factura {Model.OriginalFormattedNumber}";
+}
+
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h1>Emitir factura rectificativa</h1>
+            <p class="text-muted">Factura original: <strong>@Model.OriginalFormattedNumber</strong> (@Model.OriginalCustomerName — Total: @Model.OriginalTotalGross.ToString("N2") €)</p>
+        </div>
+        <a asp-controller="Facturacion" asp-action="InvoiceDetails" asp-route-id="@Model.OriginalInvoiceId" class="btn btn-secondary">Volver a la factura original</a>
+    </div>
+
+    <form method="post" asp-controller="Facturacion" asp-action="RectifyInvoice" asp-route-id="@Model.OriginalInvoiceId">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <input type="hidden" asp-for="OriginalInvoiceId" />
+        <input type="hidden" asp-for="OriginalFormattedNumber" />
+        <input type="hidden" asp-for="OriginalCustomerName" />
+        <input type="hidden" asp-for="OriginalTotalGross" />
+
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="Scope">Alcance de la rectificación</label>
+                <select asp-for="Scope" class="form-select">
+                    <option value="@RectificationScope.Total">Total (invierte íntegramente las líneas de la factura original)</option>
+                    <option value="@RectificationScope.PorDiferencias">Parcial por diferencias (indicar líneas más abajo)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="SeriesId">Serie de rectificativas</label>
+                <select asp-for="SeriesId" class="form-select">
+                    @foreach (var s in Model.AvailableSeries)
+                    {
+                        <option value="@s.Id">@s.Code — @s.Name (@s.FiscalYear)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="PaymentMethod">Método de pago / abono</label>
+                <select asp-for="PaymentMethod" class="form-select">
+                    <option value="@BillingPaymentMethod.Contado">Contado</option>
+                    <option value="@BillingPaymentMethod.Tarjeta">Tarjeta</option>
+                    <option value="@BillingPaymentMethod.Bizum">Bizum</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Reason">Motivo de la rectificación *</label>
+            <input asp-for="Reason" class="form-control" maxlength="500" required placeholder="Ej.: Devolución de mercancía o error en importe..." />
+            <span asp-validation-for="Reason" class="text-danger"></span>
+        </div>
+
+        <h2>Líneas de diferencias (solo si se elige rectificación parcial por diferencias)</h2>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Cantidad (negativa para abono)</th>
+                        <th>Precio unit. neto (€)</th>
+                        <th>IVA (%)</th>
+                        <th>Recargo Eq. (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.DifferenceLines.Count; i++)
+                    {
+                        <tr>
+                            <td>
+                                <input asp-for="DifferenceLines[i].Description" class="form-control" placeholder="Descripción de diferencia..." />
+                            </td>
+                            <td>
+                                <input asp-for="DifferenceLines[i].Quantity" class="form-control" />
+                            </td>
+                            <td>
+                                <input asp-for="DifferenceLines[i].UnitPriceNet" class="form-control" />
+                            </td>
+                            <td>
+                                <input asp-for="DifferenceLines[i].VatPercentage" class="form-control" />
+                            </td>
+                            <td>
+                                <input asp-for="DifferenceLines[i].SurchargePercentage" class="form-control" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger">Emitir factura rectificativa definitiva</button>
+            <a asp-controller="Facturacion" asp-action="InvoiceDetails" asp-route-id="@Model.OriginalInvoiceId" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</section>

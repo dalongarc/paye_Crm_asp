@@ -1,0 +1,19 @@
+@model Paye.Web.Modules.Notas.DeleteNotaConfirmViewModel
+@{
+    ViewData["Title"] = "Confirmar borrado de nota";
+}
+
+<section class="card auth-card">
+    <h1>Confirmar borrado</h1>
+    <p>¿Está seguro de que desea eliminar la siguiente nota?</p>
+
+    <div class="role-card">
+        <p><strong>@Model.Nota.Titulo</strong></p>
+        <p class="text-muted">@Model.Nota.Contenido</p>
+    </div>
+
+    <form asp-controller="Notas" asp-action="DeleteConfirmed" asp-route-id="@Model.Nota.Id" method="post" class="form-actions">
+        <button type="submit" class="btn btn-danger">Confirmar eliminación</button>
+        <a asp-controller="Notas" asp-action="Index" class="btn btn-secondary">Cancelar</a>
+    </form>
+</section>

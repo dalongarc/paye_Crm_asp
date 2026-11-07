@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-DWSWI4JT.js";import{o as t}from"./dist-DFcBJVd2.js";var n=e();function r({fixed:e,className:r,fluid:i=!0,...a}){return(0,n.jsx)(`main`,{"data-layout":e?`fixed`:`auto`,className:t(`px-4 sm:px-6 py-6 w-full`,e&&`flex grow flex-col overflow-hidden`,!i&&`@7xl/content:mx-auto @7xl/content:max-w-7xl`,r),...a})}export{r as t};

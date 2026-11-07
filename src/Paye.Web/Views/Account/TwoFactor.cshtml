@@ -1,0 +1,39 @@
+@model Paye.Web.ViewModels.Account.TwoFactorSetupViewModel
+@{
+    ViewData["Title"] = "Autenticación en dos pasos (2FA)";
+}
+
+<section class="card">
+    <h1>Autenticación en dos pasos (TOTP)</h1>
+
+    @if (Model.IsTwoFactorEnabled)
+    {
+        <div class="alert alert-success">
+            La autenticación en dos pasos (TOTP) está <strong>activa</strong> en su cuenta.
+        </div>
+
+        <form asp-action="DisableTwoFactor" asp-controller="Account" method="post">
+            <button type="submit" class="btn btn-danger">Desactivar 2FA</button>
+        </form>
+    }
+    else
+    {
+        <p>Configure una aplicación autenticadora (Google Authenticator, Microsoft Authenticator, Ente Auth, etc.) usando la siguiente clave secreta:</p>
+        <p><code>@Model.SharedKey</code></p>
+        <p class="text-muted">URI TOTP: <code>@Model.AuthenticatorUri</code></p>
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <form asp-action="EnableTwoFactor" asp-controller="Account" method="post" novalidate>
+            <div class="form-group">
+                <label asp-for="VerificationCode">Código de verificación de 6 dígitos</label>
+                <input asp-for="VerificationCode" class="form-control" autocomplete="one-time-code" inputmode="numeric" />
+                <span asp-validation-for="VerificationCode" class="text-danger"></span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Verificar y activar 2FA</button>
+            </div>
+        </form>
+    }
+</section>

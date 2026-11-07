@@ -1,0 +1,1 @@
+import{t as e}from"./general-error-BKB1Cxpu.js";var t=e;export{t as component};

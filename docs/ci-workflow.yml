@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 LTS
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Paye.sln
+
+      - name: Audit NuGet packages for known vulnerabilities
+        run: dotnet list Paye.sln package --vulnerable --include-transitive
+
+      - name: Build solution (Release, warnings as errors)
+        run: dotnet build Paye.sln --no-restore --configuration Release
+
+      - name: Run automated tests
+        run: dotnet test Paye.sln --no-build --configuration Release --verbosity normal

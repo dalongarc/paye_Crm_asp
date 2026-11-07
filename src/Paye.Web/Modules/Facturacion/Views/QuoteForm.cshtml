@@ -1,0 +1,116 @@
+@model Paye.Web.Modules.Facturacion.QuoteFormViewModel
+@{
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? "Editar presupuesto" : "Nuevo presupuesto";
+}
+
+<section class="card">
+    <div class="section-header">
+        <h1>@ViewData["Title"]</h1>
+        <a asp-controller="Facturacion" asp-action="Index" asp-route-tab="presupuestos" class="btn btn-secondary">Volver a presupuestos</a>
+    </div>
+
+    <form method="post" asp-controller="Facturacion" asp-action="@(isEdit ? "EditQuote" : "CreateQuote")" asp-route-id="@Model.Id">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        @if (isEdit)
+        {
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="RowVersion" />
+        }
+
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="CustomerName">Cliente / Razón social *</label>
+                <input asp-for="CustomerName" class="form-control" maxlength="200" required />
+                <span asp-validation-for="CustomerName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CustomerTaxId">NIF / CIF / NIE cliente</label>
+                <input asp-for="CustomerTaxId" class="form-control" maxlength="32" />
+                <span asp-validation-for="CustomerTaxId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CustomerAddress">Dirección cliente</label>
+                <input asp-for="CustomerAddress" class="form-control" maxlength="500" />
+                <span asp-validation-for="CustomerAddress" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="SeriesId">Serie de presupuesto</label>
+                <select asp-for="SeriesId" class="form-select">
+                    @foreach (var s in Model.AvailableSeries)
+                    {
+                        <option value="@s.Id">@s.Code — @s.Name (@s.FiscalYear)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="IssueDate">Fecha de emisión</label>
+                <input asp-for="IssueDate" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="ValidUntilDate">Válido hasta</label>
+                <input asp-for="ValidUntilDate" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="WithholdingTaxId">Retención IRPF</label>
+                <select asp-for="WithholdingTaxId" class="form-select">
+                    <option value="">Sin retención IRPF</option>
+                    @foreach (var irpf in Model.AvailableWithholdingTaxes)
+                    {
+                        <option value="@irpf.Id">@irpf.Name (-@irpf.Percentage.ToString("N2") %)</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <h2>Líneas del presupuesto</h2>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Concepto / Descripción</th>
+                        <th>Cantidad</th>
+                        <th>Precio unit. neto (€)</th>
+                        <th>IVA (%)</th>
+                        <th>Recargo Eq. (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Lines.Count; i++)
+                    {
+                        <tr>
+                            <td>
+                                <input asp-for="Lines[i].Description" class="form-control" placeholder="Descripción de la línea..." />
+                            </td>
+                            <td>
+                                <input asp-for="Lines[i].Quantity" class="form-control" />
+                            </td>
+                            <td>
+                                <input asp-for="Lines[i].UnitPriceNet" class="form-control" />
+                            </td>
+                            <td>
+                                <input asp-for="Lines[i].VatPercentage" class="form-control" />
+                            </td>
+                            <td>
+                                <input asp-for="Lines[i].SurchargePercentage" class="form-control" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Notes">Observaciones</label>
+            <textarea asp-for="Notes" class="form-control" rows="3" maxlength="2000"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar presupuesto</button>
+            <a asp-controller="Facturacion" asp-action="Index" asp-route-tab="presupuestos" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</section>

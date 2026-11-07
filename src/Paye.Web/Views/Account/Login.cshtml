@@ -1,0 +1,76 @@
+@model Paye.Web.ViewModels.Account.LoginViewModel
+@inject Microsoft.Extensions.Options.IOptions<Paye.Core.Configuration.DemoSandboxSettings> DemoOptions
+@inject Microsoft.Extensions.Options.IOptions<ClientSettings> ClientOptions
+@{
+    ViewData["Title"] = "Acceso";
+    var isDemoEnabled = DemoOptions.Value.Enabled;
+    var client = ClientOptions.Value;
+}
+
+<div class="auth-card card">
+    <div class="auth-header">
+        <div class="auth-logo-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 17l6-6 4 4 6-6" />
+                <path d="M14 5h6v6" />
+            </svg>
+        </div>
+        <h1>@client.BusinessName</h1>
+        <p class="text-muted small">Introduce tus credenciales para acceder al panel de gestión</p>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <form asp-action="Login" asp-controller="Account" method="post" novalidate>
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        <div class="form-group">
+            <label asp-for="Email">Correo electrónico</label>
+            <input asp-for="Email" class="form-control" autocomplete="username" placeholder="usuario@comercio.es" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Password">Contraseña</label>
+            <input asp-for="Password" class="form-control" autocomplete="current-password" placeholder="••••••••••••" />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+
+        <div class="form-check">
+            <input asp-for="RememberMe" class="form-check-input" />
+            <label asp-for="RememberMe" class="form-check-label">Mantener la sesión iniciada</label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary w-full">Entrar a la plataforma</button>
+        </div>
+        
+        <div class="auth-forgot-link">
+            <a asp-action="ForgotPassword" asp-controller="Account" class="link-secondary">¿Olvidaste tu contraseña?</a>
+        </div>
+    </form>
+
+    @if (isDemoEnabled)
+    {
+        <div class="demo-sandbox-card card mt-6 mb-0">
+            <div class="card-header">
+                <div>
+                    <h3 class="demo-title">Sandbox Demo Aislado</h3>
+                    <p class="text-muted small mt-1">
+                        Acceso instantáneo con datos de prueba. Se descarta todo al salir.
+                    </p>
+                </div>
+                <span class="badge badge-warning">Demo</span>
+            </div>
+            <form asp-action="DemoLogin" asp-controller="Account" method="post" class="mb-0">
+                <button type="submit" class="btn btn-secondary btn-sm w-full">
+                    Entrar al Modo Demo Aislado
+                </button>
+            </form>
+        </div>
+    }
+    @if (!string.IsNullOrWhiteSpace(client.ContactEmail))
+    {
+        <p class="text-muted small mt-4 text-center">Contacto: @client.ContactEmail</p>
+    }
+</div>

@@ -1,0 +1,26 @@
+@model Paye.Web.ViewModels.Account.LoginTwoFactorViewModel
+@{
+    ViewData["Title"] = "Verificación en dos pasos";
+}
+
+<section class="auth-card card">
+    <h1>Verificación en dos pasos (2FA)</h1>
+    <p>Introduzca el código de 6 dígitos generado por su aplicación autenticadora.</p>
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <form asp-action="LoginTwoFactor" asp-controller="Account" method="post" novalidate>
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="RememberMe" />
+
+        <div class="form-group">
+            <label asp-for="TwoFactorCode">Código de autenticación</label>
+            <input asp-for="TwoFactorCode" class="form-control" autocomplete="one-time-code" inputmode="numeric" />
+            <span asp-validation-for="TwoFactorCode" class="text-danger"></span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Verificar</button>
+            <a asp-action="Login" asp-controller="Account" class="link-secondary">Cancelar</a>
+        </div>
+    </form>
+</section>

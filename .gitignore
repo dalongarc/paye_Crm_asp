@@ -1,0 +1,47 @@
+## .NET / Visual Studio / Rider / VS Code build and user artifacts
+bin/
+obj/
+out/
+publish/
+.vs/
+.idea/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+*.DotSettings.user
+
+## Frontend artifacts
+node_modules/
+dist/
+dist-ssr/
+
+## Environment & secrets (NEVER commit secrets or real configuration)
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Production.json
+secrets.json
+
+## Runtime storage & Data Protection keys
+keys/
+dataprotection-keys/
+storage/
+uploads/
+private-uploads/
+logs/
+*.log
+
+## Test results & coverage
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+## OS artifacts
+.DS_Store
+Thumbs.db

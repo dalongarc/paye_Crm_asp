@@ -1,0 +1,24 @@
+# Docker Compose para entorno de desarrollo local (PostgreSQL 17)
+# Uso: docker compose -f docker-compose.dev.yml up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: paye-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: paye_app
+      POSTGRES_PASSWORD: paye_secure_dev_pass_2026
+      POSTGRES_DB: paye_local
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - paye_pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paye_app -d paye_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  paye_pgdata_dev:
+    name: paye_pgdata_dev

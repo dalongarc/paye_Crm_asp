@@ -1,0 +1,25 @@
+@model Paye.Web.Modules.Facturacion.FacturacionIndexViewModel
+@{
+    ViewData["Title"] = "Facturación";
+}
+<div id="facturacion-spa-root" class="sr-only" aria-hidden="true"></div>
+<div id="facturacion-ssr-fallback" class="sr-only" aria-hidden="true">
+    @if (Model?.Quotes != null)
+    {
+        <ul>
+            @foreach (var q in Model.Quotes)
+            {
+                <li><span>@q.CustomerName</span> - <span>@q.FormattedNumber</span></li>
+            }
+        </ul>
+    }
+    @if (Model?.Invoices != null)
+    {
+        <ul>
+            @foreach (var inv in Model.Invoices)
+            {
+                <li><span>@inv.CustomerName</span> - <span>@inv.FormattedNumber</span></li>
+            }
+        </ul>
+    }
+</div>

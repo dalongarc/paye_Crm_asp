@@ -1,0 +1,25 @@
+{
+  "name": "Payé POS",
+  "short_name": "Payé",
+  "description": "Sistema de Gestión Comercial y Facturación para Comercios",
+  "start_url": "/sign-in",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#18181b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/images/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/shadcn-admin.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

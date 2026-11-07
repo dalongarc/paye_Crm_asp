@@ -1,0 +1,146 @@
+@model Paye.Web.Modules.Facturacion.InvoiceDetailsViewModel
+@using Paye.Core.Modules.Facturacion
+@{
+    var inv = Model.Invoice;
+    var numberLabel = inv.FormattedNumber ?? "BORRADOR";
+    ViewData["Title"] = $"Factura {numberLabel}";
+}
+
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h1>Factura @numberLabel</h1>
+            <p class="text-muted">
+                Tipo: <strong>@inv.InvoiceType</strong> |
+                Estado: <strong>@inv.Status</strong> |
+                Fecha: @inv.IssueDate.ToString("dd/MM/yyyy") |
+                Pago: @inv.PaymentMethod
+            </p>
+        </div>
+        <div class="inline-form">
+            <a asp-controller="Facturacion" asp-action="Index" class="btn btn-secondary btn-sm">Volver</a>
+            @if (Model.CanDownload)
+            {
+                <a asp-controller="Facturacion" asp-action="DownloadInvoicePdf" asp-route-id="@inv.Id" class="btn btn-outline btn-sm">Descargar PDF</a>
+            }
+            @if (inv.Status == InvoiceStatus.Borrador && Model.CanCreate)
+            {
+                <a asp-controller="Facturacion" asp-action="EditInvoice" asp-route-id="@inv.Id" class="btn btn-secondary btn-sm">Editar borrador</a>
+                <form method="post" asp-controller="Facturacion" asp-action="DeleteDraftInvoice" asp-route-id="@inv.Id" class="inline-form">
+                    <button type="submit" class="btn btn-danger btn-sm">Eliminar borrador</button>
+                </form>
+            }
+            @if (inv.Status == InvoiceStatus.Borrador && Model.CanIssue)
+            {
+                <form method="post" asp-controller="Facturacion" asp-action="IssueDraftInvoice" asp-route-id="@inv.Id" class="inline-form">
+                    <input type="hidden" name="Id" value="@inv.Id" />
+                    <input type="hidden" name="RowVersion" value="@inv.RowVersion" />
+                    <button type="submit" class="btn btn-primary btn-sm">Emitir factura definitiva</button>
+                </form>
+            }
+            @if (inv.Status == InvoiceStatus.Emitida && Model.CanRectify)
+            {
+                <a asp-controller="Facturacion" asp-action="RectifyInvoice" asp-route-id="@inv.Id" class="btn btn-danger btn-sm">Emitir rectificativa</a>
+            }
+        </div>
+    </div>
+
+    @if (inv.RectifiedInvoiceId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <strong>Factura Rectificativa (@inv.RectificationScope):</strong>
+            Motivo: @inv.RectificationReason —
+            <a asp-controller="Facturacion" asp-action="InvoiceDetails" asp-route-id="@inv.RectifiedInvoiceId.Value">Ver factura original</a>
+        </div>
+    }
+
+    <div class="dashboard-grid">
+        <div>
+            <h2>Emisor</h2>
+            <p><strong>@(string.IsNullOrWhiteSpace(inv.IssuerTaxName) ? Model.Settings.TaxName : inv.IssuerTaxName)</strong></p>
+            <p>NIF/CIF: @(string.IsNullOrWhiteSpace(inv.IssuerTaxId) ? Model.Settings.TaxId : inv.IssuerTaxId)</p>
+            <p>Domicilio: @(string.IsNullOrWhiteSpace(inv.IssuerFiscalAddress) ? Model.Settings.FiscalAddress : inv.IssuerFiscalAddress)</p>
+        </div>
+        <div>
+            <h2>Cliente</h2>
+            <p><strong>@inv.CustomerName</strong></p>
+            <p>NIF/CIF: @(string.IsNullOrWhiteSpace(inv.CustomerTaxId) ? "—" : inv.CustomerTaxId)</p>
+            <p>Domicilio: @(string.IsNullOrWhiteSpace(inv.CustomerAddress) ? "—" : inv.CustomerAddress)</p>
+        </div>
+        <div>
+            <h2>Totales</h2>
+            <p>Base imponible: <strong>@inv.SubtotalNet.ToString("N2") €</strong></p>
+            <p>Cuota IVA: <strong>@inv.TotalVat.ToString("N2") €</strong></p>
+            @if (inv.TotalSurcharge != 0m)
+            {
+                <p>Recargo equivalencia: <strong>@inv.TotalSurcharge.ToString("N2") €</strong></p>
+            }
+            @if (inv.TotalWithholding != 0m)
+            {
+                <p>Retención IRPF (@inv.WithholdingPercentage.ToString("N2") %): <strong>-@inv.TotalWithholding.ToString("N2") €</strong></p>
+            }
+            <p>Total a pagar: <strong>@inv.TotalPayable.ToString("N2") €</strong></p>
+        </div>
+    </div>
+
+    <h2>Líneas de detalle</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Descripción</th>
+                    <th class="text-right">Cant.</th>
+                    <th class="text-right">Precio unit.</th>
+                    <th class="text-right">IVA %</th>
+                    <th class="text-right">Recargo %</th>
+                    <th class="text-right">Base línea</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in inv.Lines)
+                {
+                    <tr>
+                        <td>@line.LineOrder</td>
+                        <td>@line.Description</td>
+                        <td class="text-right">@line.Quantity.ToString("N2")</td>
+                        <td class="text-right">@line.UnitPriceNet.ToString("N2") €</td>
+                        <td class="text-right">@line.VatPercentage.ToString("N2") %</td>
+                        <td class="text-right">@line.SurchargePercentage.ToString("N2") %</td>
+                        <td class="text-right"><strong>@line.LineNet.ToString("N2") €</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (inv.AppliedTaxes.Count > 0)
+    {
+        <h2>Desglose fiscal inmutable (Snapshot AEAT)</h2>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Impuesto</th>
+                        <th>Clave AEAT / Régimen / Calificación</th>
+                        <th class="text-right">Tipo (%)</th>
+                        <th class="text-right">Base imponible</th>
+                        <th class="text-right">Cuota</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tax in inv.AppliedTaxes)
+                    {
+                        <tr>
+                            <td>@tax.TaxName</td>
+                            <td>@tax.AeatTaxCode / @tax.AeatRegimeKey / @tax.AeatOperationQualification</td>
+                            <td class="text-right">@tax.TaxPercentage.ToString("N2") %</td>
+                            <td class="text-right">@tax.TaxableBase.ToString("N2") €</td>
+                            <td class="text-right"><strong>@tax.TaxAmount.ToString("N2") €</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

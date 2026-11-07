@@ -1,0 +1,143 @@
+@model Paye.Web.ViewModels.Admin.UsersIndexViewModel
+@using Paye.Core.Authorization
+@using Paye.Core.Common
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    ViewData["Title"] = "Usuarios y permisos";
+    var canManageUsers = (await AuthorizationService.AuthorizeAsync(User, CorePermissions.UsuariosGestionar)).Succeeded;
+    var canManageRoles = (await AuthorizationService.AuthorizeAsync(User, CorePermissions.RolesGestionar)).Succeeded;
+    var canViewAudit = (await AuthorizationService.AuthorizeAsync(User, CorePermissions.AuditoriaVer)).Succeeded;
+}
+
+<section class="card">
+    <div class="section-header">
+        <h1>Administración de usuarios</h1>
+        <div class="d-flex gap-2">
+            @if (canViewAudit)
+            {
+                <a asp-action="Index" asp-controller="Audit" class="btn btn-outline-secondary">Registro de auditoría</a>
+            }
+            @if (canManageUsers)
+            {
+                <a asp-action="Create" asp-controller="Users" class="btn btn-primary">Nuevo usuario</a>
+            }
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>2FA</th>
+                    <th>Alta (Europe/Madrid)</th>
+                    @if (canManageUsers)
+                    {
+                        <th>Acciones y RGPD</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model.Users)
+                {
+                    var currentRole = u.Roles.FirstOrDefault() ?? SystemRoles.Empleado;
+                    <tr>
+                        <td>@u.FullName</td>
+                        <td>@u.Email</td>
+                        <td>
+                            @if (canManageUsers)
+                            {
+                                <form asp-action="UpdateRole" asp-controller="Users" asp-route-id="@u.Id" method="post" class="inline-form">
+                                    <input type="hidden" name="UserId" value="@u.Id" />
+                                    <select name="Role" class="form-select">
+                                        @foreach (var roleName in SystemRoles.All)
+                                        {
+                                            <option value="@roleName" selected="@(string.Equals(roleName, currentRole, StringComparison.Ordinal))">@roleName</option>
+                                        }
+                                    </select>
+                                    <button type="submit" class="btn btn-secondary btn-sm">Cambiar</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge">@currentRole</span>
+                            }
+                        </td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="badge badge-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">Desactivado</span>
+                            }
+                        </td>
+                        <td>@(u.TwoFactorEnabled ? "Sí" : "No")</td>
+                        <td>@MadridTimeConverter.FormatSpanishDateTime(u.CreatedAtUtc)</td>
+                        @if (canManageUsers)
+                        {
+                            <td class="d-flex flex-wrap gap-1">
+                                <form asp-action="ToggleActive" asp-controller="Users" asp-route-id="@u.Id" method="post" class="inline-form">
+                                    <button type="submit" class="btn @(u.IsActive ? "btn-danger" : "btn-primary") btn-sm">
+                                        @(u.IsActive ? "Desactivar" : "Activar")
+                                    </button>
+                                </form>
+                                <a asp-action="ExportGdpr" asp-controller="Users" asp-route-id="@u.Id" class="btn btn-outline-secondary btn-sm">
+                                    Exportar RGPD
+                                </a>
+                                <form asp-action="AnonymizeGdpr" asp-controller="Users" asp-route-id="@u.Id" method="post" class="inline-form">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        Anonimizar RGPD
+                                    </button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card section-spacing">
+    <h2>Permisos por rol</h2>
+    <p class="text-muted">El rol <strong>Propietario</strong> posee todos los permisos del sistema de forma permanente.</p>
+
+    @foreach (var role in Model.Roles.Where(r => r.IsEditable))
+    {
+        <div class="role-card">
+            <h3>Rol: @role.RoleName</h3>
+            <form asp-action="UpdateRolePermissions" asp-controller="Users" method="post">
+                <input type="hidden" name="RoleName" value="@role.RoleName" />
+
+                <div class="permissions-grid">
+                    @foreach (var perm in Model.AvailablePermissions)
+                    {
+                        var isChecked = role.GrantedPermissions.Contains(perm.Code);
+                        <label class="permission-item">
+                            <input type="checkbox"
+                                   name="SelectedPermissions"
+                                   value="@perm.Code"
+                                   checked="@isChecked"
+                                   disabled="@(!canManageRoles)" />
+                            <span>
+                                <strong>@perm.Code</strong> — @perm.Description
+                            </span>
+                        </label>
+                    }
+                </div>
+
+                @if (canManageRoles)
+                {
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-sm">Guardar permisos de @role.RoleName</button>
+                    </div>
+                }
+            </form>
+        </div>
+    }
+</section>

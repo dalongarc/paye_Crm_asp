@@ -1,0 +1,236 @@
+@model Paye.Web.Modules.Facturacion.FacturacionSettingsViewModel
+@using Paye.Core.Invoicing
+@using Paye.Core.Modules.Facturacion
+@{
+    ViewData["Title"] = "Configuración de Facturación";
+}
+
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h1>Datos fiscales del emisor y plantilla PDF</h1>
+            <p class="text-muted">Estos datos son obligatorios para poder emitir facturas definitivas.</p>
+        </div>
+        <a asp-controller="Facturacion" asp-action="Index" class="btn btn-secondary">Volver a facturación</a>
+    </div>
+
+    <form method="post" asp-controller="Facturacion" asp-action="UpdateIssuerSettings">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <input type="hidden" asp-for="IssuerInput.RowVersion" />
+        <input type="hidden" asp-for="IssuerInput.LogoPrivateFileId" />
+
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="IssuerInput.TaxName">Razón social / Nombre fiscal *</label>
+                <input asp-for="IssuerInput.TaxName" class="form-control" maxlength="200" required />
+                <span asp-validation-for="IssuerInput.TaxName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IssuerInput.TaxId">NIF / CIF / NIE del emisor *</label>
+                <input asp-for="IssuerInput.TaxId" class="form-control" maxlength="32" required />
+                <span asp-validation-for="IssuerInput.TaxId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IssuerInput.FiscalAddress">Domicilio fiscal *</label>
+                <input asp-for="IssuerInput.FiscalAddress" class="form-control" maxlength="500" required />
+                <span asp-validation-for="IssuerInput.FiscalAddress" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="IssuerInput.LegalTermsText">Texto legal en facturas</label>
+                <textarea asp-for="IssuerInput.LegalTermsText" class="form-control" rows="2" maxlength="2000"></textarea>
+            </div>
+            <div class="form-group">
+                <label asp-for="IssuerInput.FooterText">Pie de página PDF</label>
+                <textarea asp-for="IssuerInput.FooterText" class="form-control" rows="2" maxlength="500"></textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar datos del emisor</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Series de numeración por ejercicio</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Tipo documento</th>
+                    <th>Ejercicio</th>
+                    <th>Último número</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Series)
+                {
+                    <tr>
+                        <td><strong>@s.Code</strong></td>
+                        <td>@s.Name</td>
+                        <td>@s.DocumentKind</td>
+                        <td>@s.FiscalYear</td>
+                        <td>@s.LastNumber</td>
+                        <td>
+                            @if (s.IsActive)
+                            {
+                                <span class="badge badge-success">Activa</span>
+                            }
+                            else
+                            {
+                                <span class="badge">Inactiva</span>
+                            }
+                            @if (s.IsDefault)
+                            {
+                                <span class="badge">Por defecto</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Crear o actualizar serie</h3>
+    <form method="post" asp-controller="Facturacion" asp-action="SaveSeries">
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="NewSeriesInput.Code">Código (p. ej. F, R, P)</label>
+                <input asp-for="NewSeriesInput.Code" class="form-control" maxlength="16" required />
+            </div>
+            <div class="form-group">
+                <label asp-for="NewSeriesInput.Name">Nombre de la serie</label>
+                <input asp-for="NewSeriesInput.Name" class="form-control" maxlength="120" required />
+            </div>
+            <div class="form-group">
+                <label asp-for="NewSeriesInput.DocumentKind">Tipo de documento</label>
+                <select asp-for="NewSeriesInput.DocumentKind" class="form-select">
+                    <option value="@BillingDocumentKind.Ordinaria">Factura ordinaria</option>
+                    <option value="@BillingDocumentKind.Simplificada">Factura simplificada</option>
+                    <option value="@BillingDocumentKind.Rectificativa">Factura rectificativa</option>
+                    <option value="@BillingDocumentKind.Presupuesto">Presupuesto</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="NewSeriesInput.FiscalYear">Ejercicio fiscal</label>
+                <input asp-for="NewSeriesInput.FiscalYear" type="number" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="NewSeriesInput.PaddingDigits">Dígitos correlativo</label>
+                <input asp-for="NewSeriesInput.PaddingDigits" type="number" class="form-control" />
+            </div>
+        </div>
+        <div class="inline-form">
+            <div class="form-check">
+                <input asp-for="NewSeriesInput.IsActive" type="checkbox" />
+                <label asp-for="NewSeriesInput.IsActive">Serie activa</label>
+            </div>
+            <div class="form-check">
+                <input asp-for="NewSeriesInput.IsDefault" type="checkbox" />
+                <label asp-for="NewSeriesInput.IsDefault">Predeterminada del ejercicio</label>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Guardar serie</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Catálogo de impuestos (IVA, Recargo de Equivalencia e IRPF)</h2>
+    <p class="text-muted">Los porcentajes de impuestos creados no se alteran; si cambia un tipo impositivo, desactiva el anterior y crea uno nuevo.</p>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Clase</th>
+                    <th class="text-right">Porcentaje</th>
+                    <th>Aplica a</th>
+                    <th>Estado</th>
+                    <th>Actualizar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tax in Model.Taxes)
+                {
+                    <tr>
+                        <td><strong>@tax.Code</strong></td>
+                        <td>@tax.Name</td>
+                        <td>@tax.Kind</td>
+                        <td class="text-right">@tax.Percentage.ToString("N2") %</td>
+                        <td>@tax.Applicability</td>
+                        <td>
+                            @if (tax.IsActive)
+                            {
+                                <span class="badge badge-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge">Inactivo</span>
+                            }
+                        </td>
+                        <td>
+                            <form method="post" asp-controller="Facturacion" asp-action="UpdateTax" class="inline-form">
+                                <input type="hidden" name="Id" value="@tax.Id" />
+                                <input type="hidden" name="Name" value="@tax.Name" />
+                                <input type="hidden" name="Applicability" value="@tax.Applicability" />
+                                <input type="hidden" name="IsDefault" value="@(tax.IsDefault ? "true" : "false")" />
+                                <input type="hidden" name="IsActive" value="@(tax.IsActive ? "false" : "true")" />
+                                <input type="hidden" name="RowVersion" value="@tax.RowVersion" />
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    @(tax.IsActive ? "Desactivar" : "Reactivar")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Añadir nuevo tipo impositivo</h3>
+    <form method="post" asp-controller="Facturacion" asp-action="CreateTax">
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label asp-for="NewTaxInput.Code">Código único (p. ej. IVA12)</label>
+                <input asp-for="NewTaxInput.Code" class="form-control" maxlength="32" required />
+            </div>
+            <div class="form-group">
+                <label asp-for="NewTaxInput.Name">Nombre descriptivo</label>
+                <input asp-for="NewTaxInput.Name" class="form-control" maxlength="120" required />
+            </div>
+            <div class="form-group">
+                <label asp-for="NewTaxInput.Kind">Clase de impuesto</label>
+                <select asp-for="NewTaxInput.Kind" class="form-select">
+                    <option value="@TaxKind.Iva">IVA</option>
+                    <option value="@TaxKind.RecargoEquivalencia">Recargo de equivalencia</option>
+                    <option value="@TaxKind.Irpf">Retención IRPF</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="NewTaxInput.Percentage">Porcentaje (%)</label>
+                <input asp-for="NewTaxInput.Percentage" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="NewTaxInput.Applicability">Aplica a</label>
+                <select asp-for="NewTaxInput.Applicability" class="form-select">
+                    <option value="@TaxApplicability.Ambos">Ambos (B2B y B2C)</option>
+                    <option value="@TaxApplicability.B2B">Solo B2B</option>
+                    <option value="@TaxApplicability.B2C">Solo B2C</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Crear impuesto</button>
+        </div>
+    </form>
+</section>

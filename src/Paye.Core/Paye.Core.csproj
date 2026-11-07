@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Paye.Core</RootNamespace>
+    <AssemblyName>Paye.Core</AssemblyName>
+  </PropertyGroup>
+</Project>

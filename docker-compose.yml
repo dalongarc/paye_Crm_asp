@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Define POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Define POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+    volumes:
+      - paye_pgdata:/var/lib/postgresql/data
+    networks:
+      - paye_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ClientSettings__BusinessName: ${CLIENT_BUSINESS_NAME:?Define CLIENT_BUSINESS_NAME in .env}
+      ClientSettings__ContactEmail: ${CLIENT_CONTACT_EMAIL:-}
+      ClientSettings__ContactPhone: ${CLIENT_CONTACT_PHONE:-}
+      ClientSettings__TimeZoneId: ${CLIENT_TIMEZONE:-Europe/Madrid}
+      ClientSettings__DefaultCulture: ${CLIENT_CULTURE:-es-ES}
+      Security__DataProtectionKeysPath: /var/lib/paye/keys
+      Security__PrivateUploadsPath: /var/lib/paye/private-uploads
+    volumes:
+      - paye_dp_keys:/var/lib/paye/keys
+      - paye_private_uploads:/var/lib/paye/private-uploads
+    networks:
+      - paye_internal
+
+networks:
+  paye_internal:
+    driver: bridge
+
+volumes:
+  paye_pgdata:
+  paye_dp_keys:
+  paye_private_uploads:

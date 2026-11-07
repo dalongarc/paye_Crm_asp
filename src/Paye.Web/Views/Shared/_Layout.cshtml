@@ -1,0 +1,52 @@
+@inject Microsoft.Extensions.Options.IOptions<ClientSettings> ClientOptions
+@inject Paye.Core.Common.ICurrentUserService CurrentUser
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var client = ClientOptions.Value;
+    var pageTitle = ViewData["Title"] as string;
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var isDemoUser = CurrentUser.IsDemoSandboxUser;
+    var antiForgeryTokens = Antiforgery.GetAndStoreTokens(Context);
+}
+<!DOCTYPE html>
+<html lang="@client.DefaultCulture" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="@antiForgeryTokens.RequestToken" />
+    <meta name="htmx-config" content='{"includeIndicatorStyles":false}' />
+    <title>@(string.IsNullOrWhiteSpace(pageTitle) ? client.BusinessName : $"{pageTitle} — {client.BusinessName}")</title>
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="@(isAuthenticated ? "layout-authenticated" : "layout-public")">
+    <form id="__af_form" class="sr-only" aria-hidden="true">
+        @Html.AntiForgeryToken()
+    </form>
+
+    @if (isAuthenticated)
+    {
+        <div class="app-layout">
+            @await Component.InvokeAsync("SidebarNavigation")
+            <main class="container" id="main-content">
+                <partial name="_Alerts" />
+                @RenderBody()
+            </main>
+        </div>
+    }
+    else
+    {
+        <div class="auth-wrapper">
+            <main class="container" id="main-content">
+                <partial name="_Alerts" />
+                @RenderBody()
+            </main>
+        </div>
+
+        <script src="~/js/site.js" asp-append-version="true"></script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

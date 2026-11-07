@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Paye.Web</RootNamespace>
+    <AssemblyName>Paye.Web</AssemblyName>
+    <UserSecretsId>paye-base-dev-secrets</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Paye.Core\Paye.Core.csproj" />
+    <ProjectReference Include="..\Paye.Infrastructure\Paye.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.*" />
+  </ItemGroup>
+</Project>
