@@ -1,23 +1,10 @@
 import {
-  Construction,
   LayoutDashboard,
-  Monitor,
-  Bug,
-  ListTodo,
-  FileX,
-  HelpCircle,
-  Lock,
-  Bell,
-  Package,
-  Palette,
-  ServerOff,
+  Calendar,
   Settings,
-  Wrench,
   UserCog,
-  UserX,
   Users,
-  MessagesSquare,
-  ShieldCheck,
+  Receipt,
   Command,
   Wallet,
   FileText,
@@ -28,14 +15,14 @@ import { type SidebarData } from '../types'
 export const sidebarData: SidebarData = {
   user: {
     name: 'Dario Propietario',
-    email: 'admin@paye.local',
+    email: 'propietario@payedigital.local',
     avatar: '',
   },
   teams: [
     {
       name: 'Payé Base',
       logo: Command,
-      plan: 'Gestión & Facturación',
+      plan: 'Enterprise',
     },
   ],
   navGroups: [
@@ -55,12 +42,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'Facturación',
           url: '/facturas',
-          icon: ShieldCheck,
-        },
-        {
-          title: 'Documentación',
-          url: '/documentacion',
-          icon: FileSignature,
+          icon: Receipt,
         },
         {
           title: 'Gastos y Trimestre',
@@ -68,131 +50,34 @@ export const sidebarData: SidebarData = {
           icon: Wallet,
         },
         {
+          title: 'Documentación',
+          url: '/documentacion',
+          icon: FileSignature,
+        },
+        {
           title: 'Notas',
           url: '/notas',
           icon: FileText,
         },
         {
-          title: 'Sistema de Diseño',
-          url: '/design',
-          badge: 'Dev',
-          icon: Palette,
-        },
-        {
-          title: 'Tasks',
+          title: 'Calendario y Visitas',
           url: '/tasks',
-          icon: ListTodo,
+          icon: Calendar,
         },
+      ],
+    },
+    {
+      title: 'Administración',
+      items: [
         {
-          title: 'Apps',
-          url: '/apps',
-          icon: Package,
-        },
-        {
-          title: 'Chats',
-          url: '/chats',
-          badge: '3',
-          icon: MessagesSquare,
-        },
-        {
-          title: 'Users',
+          title: 'Usuarios y roles',
           url: '/users',
-          icon: Users,
-        },
-      ],
-    },
-    {
-      title: 'Pages',
-      items: [
-        {
-          title: 'Auth',
-          icon: ShieldCheck,
-          items: [
-            {
-              title: 'Iniciar Sesión',
-              url: '/sign-in',
-            },
-            {
-              title: 'Recuperar Contraseña',
-              url: '/forgot-password',
-            },
-            {
-              title: 'Verificación 2FA',
-              url: '/otp',
-            },
-          ],
+          icon: UserCog,
         },
         {
-          title: 'Errors',
-          icon: Bug,
-          items: [
-            {
-              title: 'Unauthorized',
-              url: '/errors/unauthorized',
-              icon: Lock,
-            },
-            {
-              title: 'Forbidden',
-              url: '/errors/forbidden',
-              icon: UserX,
-            },
-            {
-              title: 'Not Found',
-              url: '/errors/not-found',
-              icon: FileX,
-            },
-            {
-              title: 'Internal Server Error',
-              url: '/errors/internal-server-error',
-              icon: ServerOff,
-            },
-            {
-              title: 'Maintenance Error',
-              url: '/errors/maintenance-error',
-              icon: Construction,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Other',
-      items: [
-        {
-          title: 'Settings',
+          title: 'Configuración',
+          url: '/settings',
           icon: Settings,
-          items: [
-            {
-              title: 'Profile',
-              url: '/settings',
-              icon: UserCog,
-            },
-            {
-              title: 'Account',
-              url: '/settings/account',
-              icon: Wrench,
-            },
-            {
-              title: 'Appearance',
-              url: '/settings/appearance',
-              icon: Palette,
-            },
-            {
-              title: 'Notifications',
-              url: '/settings/notifications',
-              icon: Bell,
-            },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: Monitor,
-            },
-          ],
-        },
-        {
-          title: 'Help Center',
-          url: '/help-center',
-          icon: HelpCircle,
         },
       ],
     },

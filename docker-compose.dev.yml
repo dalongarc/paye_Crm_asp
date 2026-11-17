@@ -40,7 +40,7 @@ services:
       ClientSettings__BusinessName: "Paye CRM - Gestion Comercial"
       Security__DataProtectionKeysPath: /var/lib/paye/keys
       Security__PrivateUploadsPath: /var/lib/paye/private-uploads
-      Auth__LocalAutoLogin: "false"
+      Auth__LocalAutoLogin: "true"
       Auth__AllowInsecureLocalCookies: "true"
     volumes:
       - paye_crm_keys_dev:/var/lib/paye/keys

@@ -14,6 +14,7 @@ import {
   Calendar,
   Wallet,
   FileText,
+  FileSignature,
   type LucideIcon,
 } from 'lucide-react'
 import { api, type ApiTeam, type ApiNavGroup } from '@/api'
@@ -33,6 +34,7 @@ const iconMap: Record<string, LucideIcon> = {
   Calendar,
   Wallet,
   FileText,
+  FileSignature,
 }
 
 export function useNavigationQuery() {
