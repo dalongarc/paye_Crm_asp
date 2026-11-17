@@ -99,6 +99,28 @@ export interface InvoiceItem {
   lineas: LineaFactura[]
 }
 
+export interface QuoteItem {
+  id: string
+  numero: string // P2026-01, P2026-02...
+  serie: string
+  fecha: string
+  fechaValidez: string
+  clienteId?: string
+  cliente: string
+  cifNif: string
+  direccion: string
+  email: string
+  baseImponible: number
+  iva: number
+  irpfPercent?: number
+  irpfImporte?: number
+  total: number
+  estado: 'pendiente' | 'aceptado' | 'rechazado' | 'facturado'
+  formaPago?: string
+  notas?: string
+  lineas: LineaFactura[]
+}
+
 export interface ExpenseItem {
   id: string
   numeroDocumento: string
@@ -237,6 +259,7 @@ interface BillingState {
   verifactu: VerifactuConfig
   catalog: CatalogItem[]
   facturas: InvoiceItem[]
+  presupuestos: QuoteItem[]
   gastos: ExpenseItem[]
   eventos: CalendarEventItem[]
 }
@@ -296,385 +319,65 @@ const defaultState: BillingState = {
     autoChainSha256: true,
     includeQrInPdf: true,
   },
-  catalog: [
-    {
-      id: 'cat-1',
-      sku: 'SRV-TPV-PRO',
-      concepto: 'Suscripción TPV Cloud Payé Pro (Anual)',
-      categoria: 'servicio',
-      precioUnitario: 890.0,
-      ivaPercent: 21,
-    },
-    {
-      id: 'cat-2',
-      sku: 'HW-NFC-01',
-      concepto: 'Lector de tarjetas inalámbrico NFC Payé Terminal',
-      categoria: 'producto',
-      precioUnitario: 180.0,
-      ivaPercent: 21,
-    },
-    {
-      id: 'cat-3',
-      sku: 'SRV-MANT-01',
-      concepto: 'Mantenimiento preventivo e integración balanza TPV',
-      categoria: 'servicio',
-      precioUnitario: 350.0,
-      ivaPercent: 21,
-    },
-    {
-      id: 'cat-4',
-      sku: 'CONSUM-50',
-      concepto: 'Rollo papel térmico libre de bisfenol (Pack 50 uds)',
-      categoria: 'producto',
-      precioUnitario: 65.0,
-      ivaPercent: 21,
-    },
-    {
-      id: 'cat-5',
-      sku: 'SRV-FORM-01',
-      concepto: 'Jornada formativa presencial equipo administrativo',
-      categoria: 'servicio',
-      precioUnitario: 640.0,
-      ivaPercent: 21,
-    },
-    {
-      id: 'cat-6',
-      sku: 'SRV-CONS-HORA',
-      concepto: 'Hora de consultoría técnica y parametrización fiscal',
-      categoria: 'servicio',
-      precioUnitario: 75.0,
-      ivaPercent: 21,
-    },
-  ],
-  facturas: [
-    {
-      id: '1',
-      numero: 'F2026-00124',
-      serie: 'F2026',
-      fecha: '2026-11-05',
-      trimestre: '4T',
-      ejercicio: 2026,
-      fechaVencimiento: '2026-12-05',
-      cliente: 'Acme Telecomunicaciones S.L.',
-      cifNif: 'B98765432',
-      direccion: 'Avenida Gran Vía 42, 28013 Madrid',
-      email: 'facturacion@acmetelecom.es',
-      baseImponible: 1250.0,
-      iva: 262.5,
-      irpfPercent: 0,
-      irpfImporte: 0,
-      recargoPercent: 0,
-      recargoImporte: 0,
-      total: 1512.5,
-      estado: 'cobrada',
-      formaPago: 'Transferencia bancaria a 30 días',
-      ibanParcial: 'ES91 **** **** **** 8821',
-      hashVerifactu: 'a7b3c9d1e2f4...892e',
-      lineas: [
-        {
-          id: 'l1',
-          concepto: 'Suscripción TPV Cloud Payé Pro (Anual)',
-          cantidad: 1,
-          precioUnitario: 890.0,
-          ivaPercent: 21,
-          total: 890.0,
-        },
-        {
-          id: 'l2',
-          concepto: 'Lector de tarjetas inalámbrico NFC Payé Terminal',
-          cantidad: 2,
-          precioUnitario: 180.0,
-          ivaPercent: 21,
-          total: 360.0,
-        },
-      ],
-    },
-    {
-      id: '2',
-      numero: 'F2026-00125',
-      serie: 'F2026',
-      fecha: '2026-11-04',
-      trimestre: '4T',
-      ejercicio: 2026,
-      fechaVencimiento: '2026-11-18',
-      cliente: 'Restaurante El Molino C.B.',
-      cifNif: 'E12345678',
-      direccion: 'Plaza Mayor 14, 45001 Toledo',
-      email: 'administracion@elmolinotoledo.com',
-      baseImponible: 480.0,
-      iva: 100.8,
-      irpfPercent: 0,
-      irpfImporte: 0,
-      recargoPercent: 0,
-      recargoImporte: 0,
-      total: 580.8,
-      estado: 'emitida',
-      formaPago: 'Domiciliación bancaria SEPA',
-      ibanParcial: 'ES23 **** **** **** 1092',
-      hashVerifactu: 'c8d4e1f2a3b5...441a',
-      lineas: [
-        {
-          id: 'l3',
-          concepto: 'Mantenimiento preventivo e integración balanza TPV',
-          cantidad: 1,
-          precioUnitario: 350.0,
-          ivaPercent: 21,
-          total: 350.0,
-        },
-        {
-          id: 'l4',
-          concepto: 'Rollo papel térmico libre de bisfenol (Pack 50 uds)',
-          cantidad: 2,
-          precioUnitario: 65.0,
-          ivaPercent: 21,
-          total: 130.0,
-        },
-      ],
-    },
-    {
-      id: '3',
-      numero: 'F2026-00126',
-      serie: 'F2026',
-      fecha: '2026-10-18',
-      trimestre: '4T',
-      ejercicio: 2026,
-      fechaVencimiento: '2026-11-18',
-      cliente: 'Talleres Mecánicos Sur S.A.',
-      cifNif: 'A87654321',
-      direccion: 'Polígono Industrial El Nevero, Nave 12, 06006 Badajoz',
-      email: 'contabilidad@talleresmecanicossur.es',
-      baseImponible: 2840.0,
-      iva: 596.4,
-      irpfPercent: 0,
-      irpfImporte: 0,
-      recargoPercent: 0,
-      recargoImporte: 0,
-      total: 3436.4,
-      estado: 'cobrada',
-      formaPago: 'Transferencia bancaria a 30 días',
-      ibanParcial: 'ES45 **** **** **** 7734',
-      hashVerifactu: 'e1f2a3b4c5d6...782b',
-      lineas: [
-        {
-          id: 'l5',
-          concepto: 'Implantación módulo Control de Stock y Gestión de Taller',
-          cantidad: 1,
-          precioUnitario: 2200.0,
-          ivaPercent: 21,
-          total: 2200.0,
-        },
-        {
-          id: 'l6',
-          sku: 'SRV-FORM-01',
-          concepto: 'Jornada formativa presencial equipo administrativo',
-          cantidad: 1,
-          precioUnitario: 640.0,
-          ivaPercent: 21,
-          total: 640.0,
-        } as LineaFactura,
-      ],
-    },
-    {
-      id: '4',
-      numero: 'F2026-00098',
-      serie: 'F2026',
-      fecha: '2026-08-14',
-      trimestre: '3T',
-      ejercicio: 2026,
-      fechaVencimiento: '2026-09-14',
-      cliente: 'Clínica Dental Alameda S.L.P.',
-      cifNif: 'B55443322',
-      direccion: 'Calle Alameda de San Antón 8, 30205 Cartagena',
-      email: 'info@dentalalameda.es',
-      baseImponible: 920.0,
-      iva: 193.2,
-      irpfPercent: 0,
-      irpfImporte: 0,
-      recargoPercent: 0,
-      recargoImporte: 0,
-      total: 1113.2,
-      estado: 'cobrada',
-      formaPago: 'Tarjeta de crédito / Débito (TPV Físico)',
-      hashVerifactu: 'f3a4b5c6d7e8...119c',
-      lineas: [
-        {
-          id: 'l7',
-          concepto: 'Licencia anual terminal de caja Payé Punto de Venta',
-          cantidad: 2,
-          precioUnitario: 460.0,
-          ivaPercent: 21,
-          total: 920.0,
-        },
-      ],
-    },
-    {
-      id: '5',
-      numero: 'F2026-00061',
-      serie: 'F2026',
-      fecha: '2026-05-20',
-      trimestre: '2T',
-      ejercicio: 2026,
-      fechaVencimiento: '2026-06-20',
-      cliente: 'Darytravel Aventuras S.L.',
-      cifNif: 'B12345678',
-      direccion: 'Paseo de la Castellana 120, 28046 Madrid',
-      email: 'reservas@darytravel.es',
-      baseImponible: 1650.0,
-      iva: 346.5,
-      irpfPercent: 0,
-      irpfImporte: 0,
-      recargoPercent: 0,
-      recargoImporte: 0,
-      total: 1996.5,
-      estado: 'cobrada',
-      formaPago: 'Transferencia bancaria a 30 días',
-      hashVerifactu: '9981a2b3c4d5...301f',
-      lineas: [
-        {
-          id: 'l8',
-          concepto: 'Pasarela de reservas y facturación automática agencias',
-          cantidad: 1,
-          precioUnitario: 1650.0,
-          ivaPercent: 21,
-          total: 1650.0,
-        },
-      ],
-    },
-  ],
-  gastos: [
-    {
-      id: 'g1',
-      numeroDocumento: 'PROV-2026-8841',
-      fecha: '2026-11-02',
-      trimestre: '4T',
-      ejercicio: 2026,
-      proveedor: 'Cloud Infraestructura Europa S.L.',
-      cifProveedor: 'B86421975',
-      categoria: 'Software y Suscripciones',
-      concepto: 'Servidores dedicados PostgreSQL y copias de seguridad (Noviembre)',
-      baseImponible: 320.0,
-      ivaPercent: 21,
-      ivaSoportado: 67.2,
-      irpfRetenido: 0,
-      total: 387.2,
-      deducible: true,
-      ocrConfidence: 99,
-    },
-    {
-      id: 'g2',
-      numeroDocumento: 'INM-2026-11',
-      fecha: '2026-11-01',
-      trimestre: '4T',
-      ejercicio: 2026,
-      proveedor: 'Inmobiliaria Centro Empresarial S.A.',
-      cifProveedor: 'A28019283',
-      categoria: 'Alquiler y Local',
-      concepto: 'Arrendamiento oficina técnica Calle del Comercio 42',
-      baseImponible: 950.0,
-      ivaPercent: 21,
-      ivaSoportado: 199.5,
-      irpfRetenido: 180.5,
-      total: 969.0,
-      deducible: true,
-      ocrConfidence: 98,
-    },
-    {
-      id: 'g3',
-      numeroDocumento: 'DIST-99201',
-      fecha: '2026-10-15',
-      trimestre: '4T',
-      ejercicio: 2026,
-      proveedor: 'Mayorista Hardware TPV Ibérica S.L.',
-      cifProveedor: 'B45678901',
-      categoria: 'Mercancías y Materias Primas',
-      concepto: 'Lote terminales NFC y rollos térmicos homologados',
-      baseImponible: 610.0,
-      ivaPercent: 21,
-      ivaSoportado: 128.1,
-      irpfRetenido: 0,
-      total: 738.1,
-      deducible: true,
-      ocrConfidence: 96,
-    },
-    {
-      id: 'g4',
-      numeroDocumento: 'IBER-2026-08',
-      fecha: '2026-08-10',
-      trimestre: '3T',
-      ejercicio: 2026,
-      proveedor: 'Comercializadora Eléctrica Peninsular S.A.',
-      cifProveedor: 'A98127634',
-      categoria: 'Suministros (Luz, Agua, Fibra)',
-      concepto: 'Suministro eléctrico y fibra óptica simétrica 1Gbps',
-      baseImponible: 210.0,
-      ivaPercent: 21,
-      ivaSoportado: 44.1,
-      irpfRetenido: 0,
-      total: 254.1,
-      deducible: true,
-      ocrConfidence: 97,
-    },
-  ],
-  eventos: [
-    {
-      id: 'ev-1',
-      fecha: '2026-11-06',
-      horaInicio: '10:00',
-      horaFin: '11:30',
-      titulo: 'Visita comercial e instalación TPV en local',
-      tipo: 'visita',
-      cliente: 'Restaurante El Molino C.B.',
-      ubicacion: 'Plaza Mayor 14, Toledo',
-      notas: 'Llevar 2 lectores NFC configurados y rollos térmicos.',
-      completado: false,
-    },
-    {
-      id: 'ev-2',
-      fecha: '2026-11-06',
-      horaInicio: '16:30',
-      horaFin: '17:30',
-      titulo: 'Revisión trimestral de facturación y gastos con asesoría',
-      tipo: 'reunion',
-      cliente: 'Acme Telecomunicaciones S.L.',
-      ubicacion: 'Videollamada / Sala Juntas',
-      notas: 'Repasar facturas emitidas del 4T y retenciones.',
-      completado: false,
-    },
-    {
-      id: 'ev-3',
-      fecha: '2026-11-12',
-      horaInicio: '09:30',
-      horaFin: '11:00',
-      titulo: 'Visita de demostración catálogo ModaStock',
-      tipo: 'visita',
-      cliente: 'ModaStock Retail S.A.',
-      ubicacion: 'Calle Serrano 88, Madrid',
-      notas: 'Presentar el nuevo módulo de control de stock y tickets.',
-      completado: false,
-    },
-    {
-      id: 'ev-4',
-      fecha: '2026-11-20',
-      horaInicio: '09:00',
-      horaFin: '14:00',
-      titulo: 'Conciliación bancaria y cierre provisional IVA',
-      tipo: 'fiscal',
-      ubicacion: 'Sede Electrónica AEAT',
-      notas: 'Verificar encadenamiento VeriFactu y libros registro de IVA.',
-      completado: false,
-    },
-    {
-      id: 'ev-5',
-      fecha: '2026-11-25',
-      horaInicio: '12:00',
-      horaFin: '13:00',
-      titulo: 'Renovación certificado digital representante legal',
-      tipo: 'tarea',
-      ubicacion: 'Oficina de Registro FNMT',
-      notas: 'Imprescindible para firma automática de envíos VeriFactu.',
-      completado: false,
-    },
-  ],
+  catalog: [],
+  facturas: [],
+  presupuestos: [],
+  gastos: [],
+  eventos: [],
+}
+
+export function getNextInvoiceNumber(
+  facturas: InvoiceItem[],
+  year = new Date().getFullYear(),
+  serie = 'F'
+): string {
+  const yearPrefix = `${serie}${year}-`
+  let maxSeq = 0
+  for (const f of facturas) {
+    if (f.numero?.startsWith(yearPrefix)) {
+      const match = f.numero.slice(yearPrefix.length).match(/^(\d+)/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num
+        }
+      }
+    }
+  }
+  const nextSeq = maxSeq + 1
+  return `${yearPrefix}${String(nextSeq).padStart(2, '0')}`
+}
+
+export function getNextQuoteNumber(
+  presupuestos: QuoteItem[],
+  year = new Date().getFullYear(),
+  serie = 'P'
+): string {
+  const yearPrefix = `${serie}${year}-`
+  let maxSeq = 0
+  for (const p of presupuestos) {
+    if (p.numero?.startsWith(yearPrefix)) {
+      const match = p.numero.slice(yearPrefix.length).match(/^(\d+)/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num
+        }
+      }
+    }
+  }
+  const nextSeq = maxSeq + 1
+  return `${yearPrefix}${String(nextSeq).padStart(2, '0')}`
+}
+
+function isMockData(facturas: InvoiceItem[]): boolean {
+  return facturas.some(
+    (f) =>
+      f.cliente === 'Acme Telecomunicaciones S.L.' ||
+      f.numero === 'F2026-00124' ||
+      f.numero === 'F2026-00128' ||
+      f.cifNif === 'B98765432'
+  )
 }
 
 function loadState(): BillingState {
@@ -683,15 +386,44 @@ function loadState(): BillingState {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return defaultState
     const parsed = JSON.parse(raw) as Partial<BillingState>
+
+    const loadedFacturas = Array.isArray(parsed.facturas) ? parsed.facturas : []
+    const loadedPresupuestos = Array.isArray(parsed.presupuestos) ? parsed.presupuestos : []
+    const loadedGastos = Array.isArray(parsed.gastos) ? parsed.gastos : []
+    const loadedCatalog = Array.isArray(parsed.catalog) ? parsed.catalog : []
+    const loadedEventos = Array.isArray(parsed.eventos) ? parsed.eventos : []
+
+    // Si los datos guardados en localStorage son los datos de muestra antiguos, purgarlos
+    if (isMockData(loadedFacturas)) {
+      const cleanState: BillingState = {
+        company: { ...defaultState.company, ...(parsed.company ?? {}) },
+        taxes: Array.isArray(parsed.taxes) && parsed.taxes.length > 0 ? parsed.taxes : defaultState.taxes,
+        template: { ...defaultState.template, ...(parsed.template ?? {}) },
+        verifactu: { ...defaultState.verifactu, ...(parsed.verifactu ?? {}) },
+        catalog: [],
+        facturas: [],
+        presupuestos: [],
+        gastos: [],
+        eventos: [],
+      }
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanState))
+      } catch {
+        // ignore
+      }
+      return cleanState
+    }
+
     return {
       company: { ...defaultState.company, ...(parsed.company ?? {}) },
       taxes: Array.isArray(parsed.taxes) && parsed.taxes.length > 0 ? parsed.taxes : defaultState.taxes,
       template: { ...defaultState.template, ...(parsed.template ?? {}) },
       verifactu: { ...defaultState.verifactu, ...(parsed.verifactu ?? {}) },
-      catalog: Array.isArray(parsed.catalog) && parsed.catalog.length > 0 ? parsed.catalog : defaultState.catalog,
-      facturas: Array.isArray(parsed.facturas) && parsed.facturas.length > 0 ? parsed.facturas : defaultState.facturas,
-      gastos: Array.isArray(parsed.gastos) && parsed.gastos.length > 0 ? parsed.gastos : defaultState.gastos,
-      eventos: Array.isArray(parsed.eventos) && parsed.eventos.length > 0 ? parsed.eventos : defaultState.eventos,
+      catalog: loadedCatalog,
+      facturas: loadedFacturas,
+      presupuestos: loadedPresupuestos,
+      gastos: loadedGastos,
+      eventos: loadedEventos,
     }
   } catch {
     return defaultState
@@ -791,6 +523,79 @@ export const billingActions = {
       facturas: updated,
     }
     emitChange()
+  },
+
+  saveQuote(quote: QuoteItem) {
+    const exists = currentState.presupuestos.some((p) => p.id === quote.id)
+    const updated = exists
+      ? currentState.presupuestos.map((p) => (p.id === quote.id ? quote : p))
+      : [quote, ...currentState.presupuestos]
+    currentState = {
+      ...currentState,
+      presupuestos: updated,
+    }
+    emitChange()
+  },
+
+  deleteQuote(id: string) {
+    currentState = {
+      ...currentState,
+      presupuestos: currentState.presupuestos.filter((p) => p.id !== id),
+    }
+    emitChange()
+  },
+
+  convertQuoteToInvoice(quoteId: string): InvoiceItem | null {
+    const quote = currentState.presupuestos.find((p) => p.id === quoteId)
+    if (!quote) return null
+
+    const year = new Date().getFullYear()
+    const numero = getNextInvoiceNumber(currentState.facturas, year, 'F')
+    const fecha = new Date().toISOString().split('T')[0]
+    const vencDate = new Date()
+    vencDate.setDate(vencDate.getDate() + 30)
+    const fechaVencimiento = vencDate.toISOString().split('T')[0]
+
+    const newInvoice: InvoiceItem = {
+      id: `inv-${Date.now()}`,
+      numero,
+      serie: 'F',
+      fecha,
+      trimestre: getQuarterFromDate(fecha),
+      ejercicio: year,
+      fechaVencimiento,
+      clienteId: quote.clienteId,
+      cliente: quote.cliente,
+      cifNif: quote.cifNif,
+      direccion: quote.direccion,
+      email: quote.email,
+      baseImponible: quote.baseImponible,
+      iva: quote.iva,
+      irpfPercent: quote.irpfPercent ?? 0,
+      irpfImporte: quote.irpfImporte ?? 0,
+      recargoPercent: 0,
+      recargoImporte: 0,
+      total: quote.total,
+      estado: 'emitida',
+      formaPago: quote.formaPago || currentState.template.defaultPaymentMethod,
+      notas: quote.notas
+        ? `Presupuesto de origen: ${quote.numero}\n${quote.notas}`
+        : `Presupuesto de origen: ${quote.numero}`,
+      hashVerifactu: `PRE-${Date.now().toString(16).toUpperCase()}`,
+      lineas: quote.lineas,
+    }
+
+    const updatedQuotes = currentState.presupuestos.map((p) =>
+      p.id === quoteId ? { ...p, estado: 'facturado' as const } : p
+    )
+
+    currentState = {
+      ...currentState,
+      facturas: [newInvoice, ...currentState.facturas],
+      presupuestos: updatedQuotes,
+    }
+    emitChange()
+    return newInvoice
   },
 
   addExpense(expense: Omit<ExpenseItem, 'id'>) {

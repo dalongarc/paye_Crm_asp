@@ -1,53 +1,94 @@
-# Payé Base — Plantilla Modular Segura (.NET 10 + PostgreSQL)
+# Payé CRM & Base — Plataforma Modular Segura (.NET 10 + React 19 + PostgreSQL 17)
 
-Plantilla base single-tenant de **Payé Digital** para aplicaciones de gestión a medida de comercios y pequeñas empresas (CRM, Facturación, TPV/POS, inventario, reservas y documentos).
+Plataforma single-tenant de **Payé Digital** para aplicaciones de gestión comercial, CRM, facturación **VERI\*FACTU** y documentación corporativa a medida para comercios, autónomos y pequeñas empresas.
 
 ---
 
-## Características Principales
+## Novedades y Características Principales
 
-- **.NET 10 LTS + ASP.NET Core MVC (Razor) + PostgreSQL (`Npgsql`)**.
-- **Seguridad por defecto (Fail-Closed & Deny-by-Default)**:
+- **Backend .NET 10 LTS + ASP.NET Core + PostgreSQL 17 (`Npgsql`)**:
+  - Arquitectura modular autocontenida en compilación (`Modules/<NombreModulo>/` en `Paye.Core`, `Paye.Infrastructure` y `Paye.Web`).
+  - Auditoría automática (`AuditableEntity` + `AuditLog`), borrado lógico con filtro global (`ISoftDeletable`) y concurrencia optimista nativa de PostgreSQL (`xmin` → HTTP `409 Conflict`).
+- **Frontend SPA React 19 + Apple HIG + PWA (`/web`)**:
+  - Construido con **React 19**, **TypeScript**, **Vite 8**, **Tailwind CSS v4**, **TanStack Router** y **TanStack Query v5** siguiendo principios de **Apple Human Interface Guidelines (HIG)**.
+  - **PWA Instalable (Windows 11 / Escritorio / Móvil)**: `manifest.webmanifest`, Service Worker (`sw.js`) y lanzador directo en modo aplicación (`scripts/iniciar-paye.ps1`).
+  - Arquitectura de datos desacoplada (`/web/src/api/` con contratos tipados e implementaciones `real/` y `mock/` excluidas en compilación de producción).
+- **Seguridad por Defecto (Fail-Closed & Deny-by-Default)**:
   - Toda ruta exige usuario autenticado salvo `[AllowAnonymous]` explícito (`/health`, login y recuperación).
   - Validación obligatoria de configuración al arrancar (`ValidateOnStart`).
-  - Cabeceras de seguridad y **CSP estricta** sin `unsafe-inline` ni `unsafe-eval` (`includeIndicatorStyles=false` para HTMX).
-  - `ASP.NET Core Identity` con bloqueo por intentos fallidos, 2FA (TOTP), invalidación inmediata de sesiones (`SecurityStampValidator`) y protección del último `Propietario`.
+  - Cabeceras de seguridad y **CSP estricta** (`default-src 'self'; script-src 'self'; style-src 'self'`) con cero `unsafe-inline`, cero `unsafe-eval` y fuentes autoalojadas (`@fontsource`).
+  - `ASP.NET Core Identity` con cookies `HttpOnly`, bloqueo por intentos fallidos, 2FA (TOTP), invalidación inmediata de sesiones (`SecurityStampValidator`) y protección del último `Propietario`.
   - Permisos granulares como claims de rol (`paye.permission`) descubiertos automáticamente desde cada módulo (`IPermissionDefinitionProvider`).
-- **Modularidad en compilación (`Modules/<NombreModulo>/`)**:
-  - Cada módulo vive en `Paye.Core`, `Paye.Infrastructure` y `Paye.Web` y se registra con una sola línea (`builder.Services.Add<Modulo>Module();`).
-  - Quitar un módulo es borrar sus tres carpetas y su línea de registro en `Program.cs`.
-  - Módulos incluidos:
-    - **`Modules/Notas`**: Módulo de referencia (CRUD, archivado, borrado lógico, concurrencia `xmin`).
-    - **`Modules/Facturacion`**: Presupuestos, borradores de factura, emisión inmutable protegida por triggers PostgreSQL (`ERRCODE 55000`), numeración correlativa atómica sin huecos (`UPDATE ... RETURNING`), facturas rectificativas (`SELECT ... FOR UPDATE`), catálogo de impuestos configurable (IVA, Recargo de Equivalencia, IRPF con códigos AEAT VERI*FACTU), generador PDF 1.4 nativo sin dependencias externas y contratos `IInvoiceIssuer` / `ITaxCatalogReader` para el futuro módulo `Pos`.
-- **Capacidades transversales listas para producción**:
-  - Auditoría automática (`AuditableEntity` + `AuditLog`), borrado lógico con filtro global (`ISoftDeletable`) y concurrencia optimista nativa de PostgreSQL (`xmin`).
-  - Tipos monetarios seguros (`Money` con `decimal(18,2)` y redondeo centralizado en `Money.DefaultRoundingMode`, y `VatRate` para tipos de IVA españoles), cultura `es-ES` y conversión horaria `Europe/Madrid` (`MadridTimeConverter`).
-  - Almacenamiento privado de archivos fuera de `wwwroot` con validación de firmas binarias (*magic bytes*).
-  - Exportación y anonimización RGPD (`GdprUserDataService`).
-  - **Sandbox Demo Aislado opcional (`DemoSandbox__Enabled=true`, desactivado por defecto)**: Crea sesiones efímeras (`demo-<guid>`) con datos de ejemplo precargados, aislamiento estricto por usuario (`CreatedBy`), bloqueo de administración/emisión fiscal/archivos físicos y borrado total automático en base de datos al cerrar sesión.
-- **Imagen Docker Chiseled Rootless (`noble-chiseled-extra`)**:
-  - Consumo en reposo ~38–105 MB de RAM, ideal para VPS de 1–2 GB con Coolify.
+
+---
+
+## Módulos Incluidos
+
+1. **`Modules/Clientes` (`/clientes`)**:
+   - Ficha integral de clientes y proveedores (NIF/CIF, contacto, dirección fiscal, estado y notas).
+   - Gestión de presupuestos, facturas emitidas y borradores de departamentos vinculados al cliente.
+   - Control de concurrencia optimista (`xmin`) con resolución interactiva de conflictos HTTP `409`.
+2. **`Modules/Facturacion` y Resumen Trimestral (`/facturas`, `/gastos`, `/trimestre`)**:
+   - Presupuestos, borradores de factura y **emisión inmutable VERI\*FACTU** protegida por triggers PostgreSQL (`ERRCODE 55000`).
+   - Numeración correlativa atómica sin huecos (`UPDATE ... RETURNING`) y facturas rectificativas (`SELECT ... FOR UPDATE`).
+   - Catálogo de impuestos configurable (IVA, Recargo de Equivalencia, IRPF con códigos AEAT), generador y previsualizador PDF A4 nativo.
+   - Registro de gastos deducibles y cuadro de **Liquidación Trimestral** orientativa (IVA Modelo 303 e IRPF Modelo 130).
+3. **`Modules/Documentacion` (`/documentacion`)**:
+   - Editor y generador de informes, propuestas y manuales corporativos en formato **A4 multipágina** listo para impresión y exportación PDF (`documentacion-a4.css`).
+   - Configuración de identidad visual corporativa y extracción/análisis de paleta de color (`documentacion_ajustes_empresa`).
+   - Series documentales, bloques estructurados (`documentacion_lineas`), vinculación opcional con clientes y redacción asistida por IA (`IDocumentoGeminiCompletionProvider`).
+4. **`Modules/Notas` (`/notas`)**:
+   - Notas operativas con fijado (*pin*), archivado, etiquetas de color, papelera con restauración (`ISoftDeletable`) y concurrencia `xmin`.
+5. **Administración de Usuarios y Roles (`/users`)**:
+   - Alta de usuarios, asignación de roles (`Propietario`, `Administrador`, `Empleado`, `Lectura`) y activación/desactivación inmediata de sesiones activas.
+
+---
+
+## Arranque Rápido en Entorno Local (Docker + PWA Windows 11)
+
+El proyecto incluye un stack Docker de desarrollo local (`docker-compose.dev.yml`) que ejecuta tanto **PostgreSQL 17** (`127.0.0.1:5435`) como el servidor **Kestrel (`Paye.Web`)** (`http://localhost:5000` y `https://localhost:5001`), evitando bloqueos de DLLs locales por *Smart App Control* en Windows 11.
+
+```powershell
+# Iniciar PostgreSQL + Paye.Web en Docker, aplicar migraciones y abrir la PWA
+powershell -ExecutionPolicy Bypass -File .\scripts\iniciar-paye.ps1
+
+# Forzar reconstrucción de la imagen tras cambios en el backend o frontend
+powershell -ExecutionPolicy Bypass -File .\scripts\iniciar-paye.ps1 --rebuild
+```
+
+También puedes gestionar el entorno manualmente con Docker Compose:
+
+```powershell
+docker compose -f docker-compose.dev.yml up -d --build
+```
 
 ---
 
 ## Documentación en `/docs`
 
-1. [`docs/guia-completa-implementacion.md`](./docs/guia-completa-implementacion.md) — **Guía técnica completa de todo lo implementado** (mapa de clases, esquema de BD, rutas HTTP, flujos, Sandbox Demo y catálogo de las **66 pruebas automatizadas**).
-2. [`docs/modulo-facturacion.md`](./docs/modulo-facturacion.md) — **Documentación técnica del módulo `Facturacion`** (modelo fiscal, triggers de inmutabilidad en PostgreSQL, numeración atómica, rectificativas, catálogo de impuestos AEAT, generador PDF 1.4 nativo y contratos para `Pos`).
-3. [`docs/arquitectura.md`](./docs/arquitectura.md) — Estructura de proyectos, decisiones técnicas y flujo de datos.
-4. [`docs/modulos.md`](./docs/modulos.md) — Cómo crear un módulo nuevo y cómo borrar un módulo existente sin romper nada.
-5. [`docs/seguridad-y-permisos.md`](./docs/seguridad-y-permisos.md) — Identity, permisos por claims de rol, CSP, subida de archivos, RGPD y Sandbox Demo Aislado.
-6. [`docs/despliegue-coolify.md`](./docs/despliegue-coolify.md) — Variables de entorno, migraciones (`--migrate`), siembra del primer `Propietario`, backups en S3 y restauración.
-7. [`docs/nuevo-proyecto-cliente.md`](./docs/nuevo-proyecto-cliente.md) — Checklist paso a paso para iniciar el proyecto de un cliente nuevo.
+1. [`docs/local-dev.md`](./docs/local-dev.md) — **Guía de ejecución local** (Stack Docker con `iniciar-paye.ps1`, Modo A con Vite HMR y Modo B monolito de producción).
+2. [`docs/guia-completa-implementacion.md`](./docs/guia-completa-implementacion.md) — **Guía técnica completa** (mapa de clases, esquema de BD, rutas HTTP, flujos, Sandbox Demo y catálogo de pruebas automatizadas).
+3. [`docs/modulo-facturacion.md`](./docs/modulo-facturacion.md) — **Documentación técnica del módulo `Facturacion`** (modelo fiscal, triggers de inmutabilidad en PostgreSQL, numeración atómica, rectificativas, catálogo AEAT y PDF).
+4. [`docs/arquitectura.md`](./docs/arquitectura.md) — Estructura de proyectos Backend (.NET 10) + Frontend (`/web` React 19), decisiones técnicas y flujo de datos.
+5. [`docs/modulos.md`](./docs/modulos.md) — Cómo crear un módulo nuevo y cómo desactivar o borrar un módulo existente sin romper nada.
+6. [`docs/reglas-frontend.md`](./docs/reglas-frontend.md) — Reglas operativas del frontend en `/web` (React 19, Tailwind v4, contratos API, CSP sin estilos inline).
+7. [`docs/seguridad-y-permisos.md`](./docs/seguridad-y-permisos.md) — Identity, permisos por claims de rol, CSP, subida de archivos, RGPD y Sandbox Demo Aislado.
+8. [`docs/despliegue-coolify.md`](./docs/despliegue-coolify.md) — Variables de entorno, migraciones (`--migrate`), siembra del primer `Propietario`, backups en S3 y restauración.
+9. [`docs/nuevo-proyecto-cliente.md`](./docs/nuevo-proyecto-cliente.md) — Checklist paso a paso para iniciar el proyecto de un cliente nuevo.
 
 ---
 
-## Comandos Rápidos de Desarrollo y Pruebas
+## Comandos de Compilación y Pruebas
 
 ```powershell
-# Compilar toda la solución (0 advertencias, 0 errores)
+# Compilar frontend SPA (/web) y sincronizar artefactos en src/Paye.Web/wwwroot
+pnpm --dir web build
+Remove-Item -Path "src/Paye.Web/wwwroot/assets" -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item -Path "web/dist/*" -Destination "src/Paye.Web/wwwroot" -Recurse -Force
+
+# Compilar toda la solución .NET 10 (0 advertencias, 0 errores)
 dotnet build Paye.sln -m:1
 
-# Ejecutar la batería completa de 66 pruebas (unitarias + integración real con PostgreSQL 17 en Testcontainers)
+# Ejecutar la batería completa de pruebas automatizadas (xUnit + PostgreSQL 17 en Testcontainers)
 dotnet test Paye.sln -m:1
 ```

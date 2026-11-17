@@ -2,6 +2,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Paye.Core.Modules.Clientes;
 
+public sealed record ClienteDepartamentoDto(
+    string Id,
+    [property: Required(ErrorMessage = "El nombre del departamento es obligatorio.")]
+    [property: MaxLength(100, ErrorMessage = "El nombre del departamento no puede superar 100 caracteres.")]
+    string Nombre,
+    [property: MaxLength(30, ErrorMessage = "El teléfono del departamento no puede superar 30 caracteres.")]
+    string? Telefono = null,
+    [property: MaxLength(100, ErrorMessage = "La persona de contacto no puede superar 100 caracteres.")]
+    string? PersonaContacto = null,
+    [property: MaxLength(100, ErrorMessage = "El correo del departamento no puede superar 100 caracteres.")]
+    string? Email = null);
+
 public sealed record ClienteDto(
     Guid Id,
     string NombreFiscal,
@@ -19,12 +31,15 @@ public sealed record ClienteDto(
     DateTimeOffset CreatedAtUtc,
     string CreatedBy,
     DateTimeOffset? UpdatedAtUtc,
-    string? UpdatedBy);
+    string? UpdatedBy,
+    bool EsBorrador = false,
+    IReadOnlyList<ClienteDepartamentoDto>? Departamentos = null);
 
 public sealed record ClienteFilterQuery
 {
     public string? SearchTerm { get; init; }
     public bool? Activo { get; init; }
+    public bool? EsBorrador { get; init; }
     public string? SortBy { get; init; }
     public bool SortDescending { get; init; }
     public int Page { get; init; } = 1;
@@ -49,9 +64,11 @@ public sealed record CreateClienteRequest
     [MaxLength(150, ErrorMessage = "El nombre comercial no puede superar 150 caracteres.")]
     public string? NombreComercial { get; init; }
 
-    [Required(ErrorMessage = "El CIF/NIF es obligatorio.")]
+    /// <summary>
+    /// Si no se dispone del CIF/NIF al crear el cliente, se permite dejar vacío y el cliente se crea como borrador.
+    /// </summary>
     [MaxLength(20, ErrorMessage = "El CIF/NIF no puede superar 20 caracteres.")]
-    public string CifNif { get; init; } = string.Empty;
+    public string? CifNif { get; init; }
 
     [EmailAddress(ErrorMessage = "El formato de correo electrónico no es válido.")]
     [MaxLength(100, ErrorMessage = "El correo electrónico no puede superar 100 caracteres.")]
@@ -73,6 +90,10 @@ public sealed record CreateClienteRequest
     public string? Provincia { get; init; }
 
     public bool Activo { get; init; } = true;
+
+    public bool? EsBorrador { get; init; }
+
+    public IReadOnlyList<ClienteDepartamentoDto>? Departamentos { get; init; }
 
     [MaxLength(1000, ErrorMessage = "Las notas no pueden superar 1000 caracteres.")]
     public string? Notas { get; init; }
@@ -87,9 +108,11 @@ public sealed record UpdateClienteRequest
     [MaxLength(150, ErrorMessage = "El nombre comercial no puede superar 150 caracteres.")]
     public string? NombreComercial { get; init; }
 
-    [Required(ErrorMessage = "El CIF/NIF es obligatorio.")]
+    /// <summary>
+    /// Si no se indica CIF/NIF, el cliente permanece en modo borrador.
+    /// </summary>
     [MaxLength(20, ErrorMessage = "El CIF/NIF no puede superar 20 caracteres.")]
-    public string CifNif { get; init; } = string.Empty;
+    public string? CifNif { get; init; }
 
     [EmailAddress(ErrorMessage = "El formato de correo electrónico no es válido.")]
     [MaxLength(100, ErrorMessage = "El correo electrónico no puede superar 100 caracteres.")]
@@ -111,6 +134,10 @@ public sealed record UpdateClienteRequest
     public string? Provincia { get; init; }
 
     public bool Activo { get; init; } = true;
+
+    public bool? EsBorrador { get; init; }
+
+    public IReadOnlyList<ClienteDepartamentoDto>? Departamentos { get; init; }
 
     [MaxLength(1000, ErrorMessage = "Las notas no pueden superar 1000 caracteres.")]
     public string? Notas { get; init; }

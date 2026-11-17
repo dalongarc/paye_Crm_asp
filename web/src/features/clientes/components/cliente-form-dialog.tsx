@@ -12,15 +12,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import {
+  AlertTriangle,
+  Building2,
+  FileEdit,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 import {
   useCreateClienteMutation,
   useUpdateClienteMutation,
 } from '@/hooks/use-clientes'
 import {
   api,
+  type ClienteDepartamentoDto,
   type ClienteDto,
   type CreateClienteRequest,
   type UpdateClienteRequest,
@@ -55,6 +64,7 @@ export function ClienteFormDialog({
   const [ciudad, setCiudad] = useState('')
   const [provincia, setProvincia] = useState('')
   const [activo, setActivo] = useState(true)
+  const [departamentos, setDepartamentos] = useState<ClienteDepartamentoDto[]>([])
   const [notas, setNotas] = useState('')
   const [rowVersion, setRowVersion] = useState<number | string>(0)
 
@@ -77,6 +87,15 @@ export function ClienteFormDialog({
         setCiudad(cliente.ciudad || '')
         setProvincia(cliente.provincia || '')
         setActivo(cliente.activo ?? true)
+        setDepartamentos(
+          (cliente.departamentos || []).map((d) => ({
+            id: d.id || crypto.randomUUID(),
+            nombre: d.nombre || '',
+            telefono: d.telefono || '',
+            personaContacto: d.personaContacto || '',
+            email: d.email || '',
+          }))
+        )
         setNotas(cliente.notas || '')
         setRowVersion(cliente.rowVersion ?? 0)
       } else {
@@ -90,6 +109,7 @@ export function ClienteFormDialog({
         setCiudad('')
         setProvincia('')
         setActivo(true)
+        setDepartamentos([])
         setNotas('')
         setRowVersion(0)
       }
@@ -111,6 +131,15 @@ export function ClienteFormDialog({
       setCiudad(fresh.ciudad || '')
       setProvincia(fresh.provincia || '')
       setActivo(fresh.activo ?? true)
+      setDepartamentos(
+        (fresh.departamentos || []).map((d) => ({
+          id: d.id || crypto.randomUUID(),
+          nombre: d.nombre || '',
+          telefono: d.telefono || '',
+          personaContacto: d.personaContacto || '',
+          email: d.email || '',
+        }))
+      )
       setNotas(fresh.notas || '')
       setRowVersion(fresh.rowVersion)
       setConflictMessage(null)
@@ -122,26 +151,71 @@ export function ClienteFormDialog({
     }
   }
 
+  const handleAddDepartamento = () => {
+    setDepartamentos((prev) => [
+      ...prev,
+      {
+        id: `dpto-${Date.now()}-${prev.length}`,
+        nombre: '',
+        telefono: '',
+        personaContacto: '',
+        email: '',
+      },
+    ])
+  }
+
+  const handleUpdateDepartamento = (
+    id: string,
+    field: keyof ClienteDepartamentoDto,
+    value: string
+  ) => {
+    setDepartamentos((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, [field]: value } : d))
+    )
+  }
+
+  const handleRemoveDepartamento = (id: string) => {
+    setDepartamentos((prev) => prev.filter((d) => d.id !== id))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setConflictMessage(null)
 
     if (!nombreFiscal.trim()) {
-      toast.error('El nombre fiscal es obligatorio.')
+      toast.error('El nombre o razón social del cliente es obligatorio.')
       return
     }
 
-    if (!cifNif.trim()) {
-      toast.error('El CIF/NIF es obligatorio.')
-      return
-    }
+    const cleanCif = cifNif.trim().toUpperCase()
+    const isDraft = cleanCif.length === 0
+
+    const normalizedDepartamentos: ClienteDepartamentoDto[] = departamentos
+      .map((d) => ({
+        id: d.id,
+        nombre: (d.nombre || '').trim(),
+        telefono: (d.telefono || '').trim() || null,
+        personaContacto: (d.personaContacto || '').trim() || null,
+        email: (d.email || '').trim() || null,
+      }))
+      .filter(
+        (d) =>
+          Boolean(d.nombre) ||
+          Boolean(d.telefono) ||
+          Boolean(d.personaContacto) ||
+          Boolean(d.email)
+      )
+      .map((d) => ({
+        ...d,
+        nombre: d.nombre || 'General',
+      }))
 
     try {
       if (isEdit && cliente) {
         const updateData: UpdateClienteRequest = {
           nombreFiscal: nombreFiscal.trim(),
           nombreComercial: nombreComercial.trim() || null,
-          cifNif: cifNif.trim().toUpperCase(),
+          cifNif: cleanCif || null,
           email: email.trim() || null,
           telefono: telefono.trim() || null,
           direccion: direccion.trim() || null,
@@ -149,17 +223,23 @@ export function ClienteFormDialog({
           ciudad: ciudad.trim() || null,
           provincia: provincia.trim() || null,
           activo,
+          esBorrador: isDraft,
+          departamentos: normalizedDepartamentos,
           notas: notas.trim() || null,
           rowVersion,
         }
 
         await updateMutation.mutateAsync({ id: cliente.id, data: updateData })
-        toast.success(`Cliente "${nombreFiscal}" actualizado correctamente.`)
+        toast.success(
+          isDraft
+            ? `Cliente "${nombreFiscal}" guardado como borrador (sin CIF/NIF).`
+            : `Cliente "${nombreFiscal}" actualizado correctamente.`
+        )
       } else {
         const createData: CreateClienteRequest = {
           nombreFiscal: nombreFiscal.trim(),
           nombreComercial: nombreComercial.trim() || null,
-          cifNif: cifNif.trim().toUpperCase(),
+          cifNif: cleanCif || null,
           email: email.trim() || null,
           telefono: telefono.trim() || null,
           direccion: direccion.trim() || null,
@@ -167,11 +247,17 @@ export function ClienteFormDialog({
           ciudad: ciudad.trim() || null,
           provincia: provincia.trim() || null,
           activo,
+          esBorrador: isDraft,
+          departamentos: normalizedDepartamentos,
           notas: notas.trim() || null,
         }
 
         await createMutation.mutateAsync(createData)
-        toast.success(`Cliente "${nombreFiscal}" creado correctamente.`)
+        toast.success(
+          isDraft
+            ? `Cliente "${nombreFiscal}" creado como borrador (pendiente de CIF/NIF).`
+            : `Cliente "${nombreFiscal}" creado correctamente.`
+        )
       }
 
       onOpenChange(false)
@@ -247,18 +333,31 @@ export function ClienteFormDialog({
               </div>
 
               <div className='space-y-1.5'>
-                <Label htmlFor='cifNif'>
-                  CIF / NIF <span className='text-destructive'>*</span>
-                </Label>
+                <div className='flex items-center justify-between gap-1'>
+                  <Label htmlFor='cifNif'>CIF / NIF</Label>
+                  {!cifNif.trim() ? (
+                    <Badge
+                      variant='outline'
+                      className='border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] gap-1 px-1.5 py-0'
+                    >
+                      <FileEdit className='h-2.5 w-2.5' />
+                      <span>Modo Borrador</span>
+                    </Badge>
+                  ) : null}
+                </div>
                 <Input
                   id='cifNif'
                   data-testid='input-cif-nif'
-                  placeholder='Ej. B12345678'
+                  placeholder='Ej. B12345678 (dejar vacío para borrador)'
                   value={cifNif}
                   onChange={(e) => setCifNif(e.target.value)}
                   disabled={isPending}
-                  required
                 />
+                {!cifNif.trim() && (
+                  <p className='text-[11px] text-amber-600 dark:text-amber-400'>
+                    Si no tienes el CIF/NIF todavía, se creará como cliente en borrador.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -277,7 +376,7 @@ export function ClienteFormDialog({
               </div>
 
               <div className='space-y-1.5'>
-                <Label htmlFor='email'>Correo Electrónico</Label>
+                <Label htmlFor='email'>Correo Electrónico Principal</Label>
                 <Input
                   id='email'
                   data-testid='input-email'
@@ -290,10 +389,10 @@ export function ClienteFormDialog({
               </div>
             </div>
 
-            {/* Teléfono y Ciudad */}
+            {/* Teléfono Principal y Ciudad */}
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div className='space-y-1.5'>
-                <Label htmlFor='telefono'>Teléfono</Label>
+                <Label htmlFor='telefono'>Teléfono Principal</Label>
                 <Input
                   id='telefono'
                   data-testid='input-telefono'
@@ -315,6 +414,109 @@ export function ClienteFormDialog({
                   disabled={isPending}
                 />
               </div>
+            </div>
+
+            {/* Departamentos y Teléfonos Adicionales */}
+            <div className='rounded-xl border border-border/80 bg-muted/15 p-3.5 space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <div>
+                  <Label className='text-xs font-semibold flex items-center gap-1.5'>
+                    <Building2 className='h-3.5 w-3.5 text-primary' />
+                    <span>Departamentos y teléfonos de contacto</span>
+                  </Label>
+                  <p className='text-[11px] text-muted-foreground mt-0.5'>
+                    Añade tantos departamentos, extensiones o contactos como necesites (Administración, Comercial, Soporte...).
+                  </p>
+                </div>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={handleAddDepartamento}
+                  disabled={isPending}
+                  className='h-7 text-xs gap-1 shrink-0'
+                  data-testid='btn-add-departamento'
+                >
+                  <Plus className='h-3.5 w-3.5' />
+                  <span>Añadir departamento</span>
+                </Button>
+              </div>
+
+              {departamentos.length === 0 ? (
+                <p className='text-xs text-muted-foreground italic py-1'>
+                  Sin departamentos adicionales registrados. Pulsa «Añadir departamento» para agregar más teléfonos o áreas.
+                </p>
+              ) : (
+                <div className='space-y-2.5'>
+                  {departamentos.map((dpto, idx) => (
+                    <div
+                      key={dpto.id}
+                      className='rounded-lg border border-border/70 bg-background p-2.5 space-y-2'
+                    >
+                      <div className='flex items-center justify-between gap-2'>
+                        <span className='text-[11px] font-semibold text-muted-foreground'>
+                          Departamento #{idx + 1}
+                        </span>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          className='h-6 w-6 text-muted-foreground hover:text-destructive'
+                          onClick={() => handleRemoveDepartamento(dpto.id)}
+                          disabled={isPending}
+                          title='Eliminar departamento'
+                        >
+                          <Trash2 className='h-3.5 w-3.5' />
+                        </Button>
+                      </div>
+
+                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
+                        <Input
+                          placeholder='Departamento (ej. Administración, Comercial...)'
+                          value={dpto.nombre}
+                          onChange={(e) =>
+                            handleUpdateDepartamento(dpto.id, 'nombre', e.target.value)
+                          }
+                          disabled={isPending}
+                          className='h-8 text-xs'
+                        />
+                        <Input
+                          placeholder='Teléfono del departamento (+34...)'
+                          value={dpto.telefono || ''}
+                          onChange={(e) =>
+                            handleUpdateDepartamento(dpto.id, 'telefono', e.target.value)
+                          }
+                          disabled={isPending}
+                          className='h-8 text-xs font-mono'
+                        />
+                        <Input
+                          placeholder='Persona de contacto (opcional)'
+                          value={dpto.personaContacto || ''}
+                          onChange={(e) =>
+                            handleUpdateDepartamento(
+                              dpto.id,
+                              'personaContacto',
+                              e.target.value
+                            )
+                          }
+                          disabled={isPending}
+                          className='h-8 text-xs'
+                        />
+                        <Input
+                          type='email'
+                          placeholder='Email del departamento (opcional)'
+                          value={dpto.email || ''}
+                          onChange={(e) =>
+                            handleUpdateDepartamento(dpto.id, 'email', e.target.value)
+                          }
+                          disabled={isPending}
+                          className='h-8 text-xs'
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Dirección y Código Postal */}

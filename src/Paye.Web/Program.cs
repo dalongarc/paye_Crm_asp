@@ -18,6 +18,7 @@ using Paye.Infrastructure;
 using Paye.Infrastructure.Data;
 using Paye.Infrastructure.Identity;
 using Paye.Infrastructure.Modules.Clientes;
+using Paye.Infrastructure.Modules.Documentacion;
 using Paye.Web.Authorization;
 using Paye.Web.Middleware;
 using Paye.Web.Modules.Facturacion;
@@ -38,7 +39,29 @@ if (args.Contains("--healthcheck", StringComparer.OrdinalIgnoreCase))
     }
 }
 
-var builder = WebApplication.CreateBuilder(args);
+var candidateWwwRoots = new[]
+{
+    Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+    Path.Combine(Directory.GetCurrentDirectory(), "src", "Paye.Web", "wwwroot"),
+    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+};
+
+string? resolvedWebRoot = null;
+foreach (var dir in candidateWwwRoots)
+{
+    if (Directory.Exists(dir))
+    {
+        resolvedWebRoot = dir;
+        break;
+    }
+}
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = resolvedWebRoot
+});
+
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 builder.WebHost.ConfigureKestrel(serverOptions => serverOptions.AddServerHeader = false);
 
@@ -126,12 +149,13 @@ builder.Services.AddPayeInfrastructure(builder.Configuration);
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
-        options.Password.RequiredLength = 12;
-        options.Password.RequireDigit = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireNonAlphanumeric = true;
-        options.Password.RequiredUniqueChars = 4;
+        // Contraseñas flexibles y accesibles para entorno local
+        options.Password.RequiredLength = 4;
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredUniqueChars = 1;
 
         options.Lockout.AllowedForNewUsers = true;
         options.Lockout.MaxFailedAccessAttempts = 5;
@@ -156,15 +180,15 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.Cookie.Name = builder.Environment.IsDevelopment()
-        ? "Paye.Auth.Dev"
-        : "__Host-Paye.Auth";
+    var isLocalOrDev = builder.Environment.IsDevelopment()
+        || builder.Configuration.GetValue<bool>("Auth:AllowInsecureLocalCookies", false)
+        || builder.Configuration.GetValue<bool>("Auth:LocalAutoLogin", false);
+
+    options.Cookie.Name = isLocalOrDev ? "Paye.Auth.Dev" : "__Host-Paye.Auth";
     options.Cookie.Path = "/";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = isLocalOrDev ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
     options.LoginPath = "/account/login";
     options.AccessDeniedPath = "/account/access-denied";
     options.SlidingExpiration = true;
@@ -236,15 +260,15 @@ builder.Services.AddAuthorization(options =>
 // 7. Antiforgery (enforced globally on write endpoints)
 builder.Services.AddAntiforgery(options =>
 {
-    options.Cookie.Name = builder.Environment.IsDevelopment()
-        ? "Paye.Antiforgery.Dev"
-        : "__Host-Paye.Antiforgery";
+    var isLocalOrDev = builder.Environment.IsDevelopment()
+        || builder.Configuration.GetValue<bool>("Auth:AllowInsecureLocalCookies", false)
+        || builder.Configuration.GetValue<bool>("Auth:LocalAutoLogin", false);
+
+    options.Cookie.Name = isLocalOrDev ? "Paye.Antiforgery.Dev" : "__Host-Paye.Antiforgery";
     options.Cookie.Path = "/";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Strict;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = isLocalOrDev ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
     options.HeaderName = "RequestVerificationToken";
 });
 
@@ -305,6 +329,10 @@ builder.Services.AddLocalization();
 builder.Services.AddNotasModule();
 builder.Services.AddFacturacionModule();
 builder.Services.AddClientesModule();
+builder.Services.AddDocumentacionModule();
+
+// AI Provider explicitly added here so we can use AddHttpClient from AspNetCore App
+builder.Services.AddHttpClient<Paye.Core.Modules.Documentacion.IDocumentoGeminiCompletionProvider, Paye.Infrastructure.Modules.Documentacion.DocumentoGeminiCompletionProvider>();
 
 // 14. Native OpenAPI (.NET 10)
 builder.Services.AddOpenApi();
@@ -379,6 +407,30 @@ app.UseCors("ExplicitOriginAllowlist");
 app.UseRateLimiter();
 
 app.UseAuthentication();
+
+// Autologin local transparente opcional (para entornos locales/W11 sin fricción de login)
+if (app.Configuration.GetValue<bool>("Auth:LocalAutoLogin", false))
+{
+    app.Use(async (context, next) =>
+    {
+        if (context.User.Identity?.IsAuthenticated != true &&
+            !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase))
+        {
+            var userMgr = context.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+            var signInMgr = context.RequestServices.GetRequiredService<SignInManager<ApplicationUser>>();
+
+            var localUser = await userMgr.Users.FirstOrDefaultAsync(u => u.IsActive);
+            if (localUser is not null)
+            {
+                await signInMgr.SignInAsync(localUser, isPersistent: true);
+                context.User = await signInMgr.CreateUserPrincipalAsync(localUser);
+            }
+        }
+
+        await next();
+    });
+}
+
 app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())

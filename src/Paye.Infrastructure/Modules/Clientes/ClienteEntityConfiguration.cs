@@ -44,6 +44,15 @@ public sealed class ClienteEntityConfiguration : IEntityTypeConfiguration<Client
             .HasDefaultValue(true)
             .IsRequired();
 
+        builder.Property(c => c.EsBorrador)
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(c => c.DepartamentosJson)
+            .HasColumnType("jsonb")
+            .HasDefaultValue("[]")
+            .IsRequired();
+
         builder.Property(c => c.Notas)
             .HasMaxLength(1000);
 

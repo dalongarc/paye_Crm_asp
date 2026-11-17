@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { toast } from 'sonner'
+import { useCreateUserMutation, useUpdateUserMutation } from '@/hooks/use-users'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,15 +31,15 @@ import { type User } from '../data/schema'
 
 const formSchema = z
   .object({
-    firstName: z.string().min(1, 'First Name is required.'),
-    lastName: z.string().min(1, 'Last Name is required.'),
-    username: z.string().min(1, 'Username is required.'),
-    phoneNumber: z.string().min(1, 'Phone number is required.'),
+    firstName: z.string().min(1, 'El nombre es obligatorio.'),
+    lastName: z.string().min(1, 'Los apellidos son obligatorios.'),
+    username: z.string().min(1, 'El nombre de usuario es obligatorio.'),
+    phoneNumber: z.string(),
     email: z.email({
-      error: (iss) => (iss.input === '' ? 'Email is required.' : undefined),
+      error: (iss) => (iss.input === '' ? 'El correo electrónico es obligatorio.' : undefined),
     }),
     password: z.string().transform((pwd) => pwd.trim()),
-    role: z.string().min(1, 'Role is required.'),
+    role: z.string().min(1, 'El rol es obligatorio.'),
     confirmPassword: z.string().transform((pwd) => pwd.trim()),
     isEdit: z.boolean(),
   })
@@ -47,37 +49,17 @@ const formSchema = z
       return data.password.length > 0
     },
     {
-      message: 'Password is required.',
+      message: 'La contraseña es obligatoria.',
       path: ['password'],
     }
   )
   .refine(
     ({ isEdit, password }) => {
       if (isEdit && !password) return true
-      return password.length >= 8
+      return password.length >= 4
     },
     {
-      message: 'Password must be at least 8 characters long.',
-      path: ['password'],
-    }
-  )
-  .refine(
-    ({ isEdit, password }) => {
-      if (isEdit && !password) return true
-      return /[a-z]/.test(password)
-    },
-    {
-      message: 'Password must contain at least one lowercase letter.',
-      path: ['password'],
-    }
-  )
-  .refine(
-    ({ isEdit, password }) => {
-      if (isEdit && !password) return true
-      return /\d/.test(password)
-    },
-    {
-      message: 'Password must contain at least one number.',
+      message: 'La contraseña debe tener al menos 4 caracteres.',
       path: ['password'],
     }
   )
@@ -87,7 +69,7 @@ const formSchema = z
       return password === confirmPassword
     },
     {
-      message: "Passwords don't match.",
+      message: 'Las contraseñas no coinciden.',
       path: ['confirmPassword'],
     }
   )
@@ -105,6 +87,10 @@ export function UsersActionDialog({
   onOpenChange,
 }: UserActionDialogProps) {
   const isEdit = !!currentRow
+  const createMutation = useCreateUserMutation()
+  const updateMutation = useUpdateUserMutation()
+  const isPending = createMutation.isPending || updateMutation.isPending
+
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
     defaultValues: isEdit
@@ -119,7 +105,7 @@ export function UsersActionDialog({
           lastName: '',
           username: '',
           email: '',
-          role: '',
+          role: 'admin',
           phoneNumber: '',
           password: '',
           confirmPassword: '',
@@ -127,10 +113,70 @@ export function UsersActionDialog({
         },
   })
 
-  const onSubmit = (values: UserForm) => {
-    form.reset()
-    showSubmittedData(values)
-    onOpenChange(false)
+  useEffect(() => {
+    if (open) {
+      if (currentRow) {
+        form.reset({
+          firstName: currentRow.firstName,
+          lastName: currentRow.lastName,
+          username: currentRow.username,
+          email: currentRow.email,
+          role: 'admin',
+          phoneNumber: currentRow.phoneNumber || '',
+          password: '',
+          confirmPassword: '',
+          isEdit: true,
+        })
+      } else {
+        form.reset({
+          firstName: '',
+          lastName: '',
+          username: '',
+          email: '',
+          role: 'admin',
+          phoneNumber: '',
+          password: '',
+          confirmPassword: '',
+          isEdit: false,
+        })
+      }
+    }
+  }, [open, currentRow, form])
+
+  const onSubmit = async (values: UserForm) => {
+    try {
+      if (isEdit && currentRow) {
+        await updateMutation.mutateAsync({
+          id: currentRow.id,
+          data: {
+            firstName: values.firstName,
+            lastName: values.lastName,
+            username: values.username,
+            email: values.email,
+            phoneNumber: values.phoneNumber,
+            password: values.password ? values.password : undefined,
+            role: 'admin',
+          },
+        })
+        toast.success(`Usuario ${values.username} actualizado correctamente.`)
+      } else {
+        await createMutation.mutateAsync({
+          firstName: values.firstName,
+          lastName: values.lastName,
+          username: values.username,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          password: values.password,
+          role: 'admin',
+        })
+        toast.success(`Usuario ${values.username} creado correctamente.`)
+      }
+      form.reset()
+      onOpenChange(false)
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al guardar el usuario.'
+      toast.error(errorMsg)
+    }
   }
 
   const isPasswordTouched = !!form.formState.dirtyFields.password
@@ -139,16 +185,23 @@ export function UsersActionDialog({
     <Dialog
       open={open}
       onOpenChange={(state) => {
-        form.reset()
+        if (!state) {
+          form.reset()
+        }
         onOpenChange(state)
       }}
     >
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent
+        className='sm:max-w-lg'
+        onFocusOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className='text-start'>
-          <DialogTitle>{isEdit ? 'Edit User' : 'Add New User'}</DialogTitle>
+          <DialogTitle>{isEdit ? 'Editar Usuario' : 'Añadir Nuevo Usuario'}</DialogTitle>
           <DialogDescription>
-            {isEdit ? 'Update the user here. ' : 'Create new user here. '}
-            Click save when you&apos;re done.
+            {isEdit
+              ? 'Modifica los datos del usuario. '
+              : 'Introduce los datos del nuevo usuario. '}
+            Haz clic en guardar cambios al terminar.
           </DialogDescription>
         </DialogHeader>
         <div className='h-105 w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
@@ -164,11 +217,11 @@ export function UsersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      First Name
+                      Nombre
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='John'
+                        placeholder='Dario'
                         className='col-span-4'
                         autoComplete='off'
                         {...field}
@@ -184,11 +237,11 @@ export function UsersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Last Name
+                      Apellidos
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='Doe'
+                        placeholder='García'
                         className='col-span-4'
                         autoComplete='off'
                         {...field}
@@ -204,11 +257,11 @@ export function UsersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Username
+                      Nombre de usuario
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='john_doe'
+                        placeholder='admin'
                         className='col-span-4'
                         {...field}
                       />
@@ -222,10 +275,10 @@ export function UsersActionDialog({
                 name='email'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>Email</FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Correo electrónico</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='john.doe@gmail.com'
+                        placeholder='propietario@comercio.es'
                         className='col-span-4'
                         {...field}
                       />
@@ -240,11 +293,11 @@ export function UsersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Phone Number
+                      Teléfono
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='+123456789'
+                        placeholder='+34 910 245 800'
                         className='col-span-4'
                         {...field}
                       />
@@ -258,11 +311,11 @@ export function UsersActionDialog({
                 name='role'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>Role</FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Rol</FormLabel>
                     <SelectDropdown
                       defaultValue={field.value}
                       onValueChange={field.onChange}
-                      placeholder='Select a role'
+                      placeholder='Seleccionar rol'
                       className='col-span-4'
                       items={roles.map(({ label, value }) => ({
                         label,
@@ -279,11 +332,11 @@ export function UsersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Password
+                      Contraseña
                     </FormLabel>
                     <FormControl>
                       <PasswordInput
-                        placeholder='e.g., S3cur3P@ssw0rd'
+                        placeholder='p. ej., C0ntr@señaSegura123'
                         className='col-span-4'
                         {...field}
                       />
@@ -298,12 +351,12 @@ export function UsersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Confirm Password
+                      Confirmar contraseña
                     </FormLabel>
                     <FormControl>
                       <PasswordInput
                         disabled={!isPasswordTouched}
-                        placeholder='e.g., S3cur3P@ssw0rd'
+                        placeholder='Repite la contraseña'
                         className='col-span-4'
                         {...field}
                       />
@@ -316,8 +369,8 @@ export function UsersActionDialog({
           </Form>
         </div>
         <DialogFooter>
-          <Button type='submit' form='user-form'>
-            Save changes
+          <Button type='submit' form='user-form' disabled={isPending}>
+            {isPending ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </DialogFooter>
       </DialogContent>

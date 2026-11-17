@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/sidebar'
 // import { AppTitle } from './app-title'
 import { useNavigationQuery } from '@/hooks/use-navigation'
+import { PwaInstallButton } from '@/components/pwa-install-button'
 import { sidebarData as fallbackData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
@@ -29,6 +30,7 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter>
+        <PwaInstallButton variant='sidebar' />
         <NavUser user={activeData.user} />
       </SidebarFooter>
       <SidebarRail />

@@ -20,6 +20,8 @@ public sealed class Cliente : AuditableEntity, ISoftDeletable
     public string Ciudad { get; set; } = string.Empty;
     public string Provincia { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
+    public bool EsBorrador { get; set; }
+    public string DepartamentosJson { get; set; } = "[]";
     public string? Notas { get; set; }
 
     public bool IsDeleted { get; set; }

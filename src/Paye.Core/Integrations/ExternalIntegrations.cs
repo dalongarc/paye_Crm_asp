@@ -11,7 +11,12 @@ public sealed class ExternalIntegrationsSettings
 public sealed class GeminiIntegrationOptions
 {
     public string? ApiKey { get; init; }
-    public string Model { get; init; } = "gemini-2.5-flash";
+    public string Model { get; init; } = "gemini-3.8-flash";
+    public int TimeoutSeconds { get; init; } = 30;
+    public int MaxSourceTextCharacters { get; init; } = 60_000;
+    public int MaxRequestsPerMinutePerUser { get; init; } = 6;
+    public int MaxGeneratedBlocks { get; init; } = 15;
+    public string PromptsDirectory { get; init; } = "Config/Prompts/Documentacion";
 
     public bool IsEnabled =>
         !string.IsNullOrWhiteSpace(ApiKey) &&

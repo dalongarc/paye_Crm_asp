@@ -1,6 +1,15 @@
 # Guía de Módulos Autocontenidos (`Modules/<NombreModulo>/`)
 
-En **Payé Base**, las funcionalidades de negocio (como `Notas`, y en futuros desarrollos `Crm` o `Pos`) se encapsulan en módulos autocontenidos.
+En **Payé Base & CRM**, las funcionalidades de negocio (`Clientes`, `Facturacion`, `Documentacion`, `Notas` y contratos para `Pos`) se encapsulan en módulos autocontenidos.
+
+### Módulos Activos en `Program.cs`
+
+| Módulo | Registro en `Program.cs` | Tablas PostgreSQL | Ruta Frontend (`/web`) |
+| :--- | :--- | :--- | :--- |
+| **`Clientes`** | `builder.Services.AddClientesModule();` | `clientes` | `/clientes` |
+| **`Facturacion`** | `builder.Services.AddFacturacionModule();` | `facturacion_config`, `facturacion_series`, `facturacion_impuestos`, `facturacion_presupuestos`, `facturacion_presupuesto_lineas`, `facturacion_facturas`, `facturacion_factura_lineas`, `facturacion_factura_impuestos` | `/facturas`, `/gastos`, `/trimestre` |
+| **`Documentacion`** | `builder.Services.AddDocumentacionModule();` | `documentacion_ajustes_empresa`, `documentacion_series`, `documentacion_documentos`, `documentacion_lineas` | `/documentacion` |
+| **`Notas`** | `builder.Services.AddNotasModule();` | `notas` | `/notas` |
 
 ---
 

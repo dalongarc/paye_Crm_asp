@@ -1,135 +1,82 @@
-# Guía de Ejecución Local: Modo A y Modo B (docs/local-dev.md)
+# Guía de Ejecución Local: Docker PWA, Modo A y Modo B (`docs/local-dev.md`)
 
-Payé Base permite dos modos de ejecución local estandarizados y reproducibles. Ambos se conectan a una base de datos PostgreSQL 17 en contenedor Docker efímero/persistente y respetan la política estricta de seguridad sin secretos en el repositorio ni contraseñas fijas.
+Payé CRM dispone de un flujo de arranque local dockerizado (`docker-compose.dev.yml` + `scripts/iniciar-paye.ps1`) además de los modos de desarrollo con recarga en caliente (Modo A) y monolito local (Modo B). Todos se conectan a PostgreSQL 17 en Docker y respetan la política estricta de seguridad sin secretos en el repositorio.
 
 ---
 
-## 1. Requisitos Previos
+## 1. Arranque Rápido Recomendado en Windows 11 (Docker + PWA)
 
-- **.NET 10 SDK** (LTS)
-- **Node.js 20+** y **pnpm** (`pnpm -v >= 10.x`)
-- **Docker Desktop** o daemon Docker compatible (para PostgreSQL 17)
-- Certificado de desarrollo HTTPS de confianza:
+En Windows 11, el *Control Inteligente de Aplicaciones (Smart App Control / WDAC)* puede bloquear la carga de DLLs locales sin firmar (`0x800711C7`) cuando se utiliza un SDK portable de .NET. Para evitar cualquier fricción, `docker-compose.dev.yml` ejecuta tanto **PostgreSQL 17** (`paye-crm-postgres`) como el servidor **Kestrel (`paye-crm-web`)** en contenedores aislados, sirviendo el frontend compilado en `src/Paye.Web/wwwroot` como volumen en vivo.
+
+### Iniciar con un solo comando
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\iniciar-paye.ps1
+```
+
+¿Qué hace automáticamente `scripts/iniciar-paye.ps1`?
+1. Exporta el certificado HTTPS de desarrollo local (`storage/certs/aspnetcore-https.pfx`, excluido de Git) si aún no existe.
+2. Verifica o levanta `paye-crm-postgres` (`127.0.0.1:5435`) y `paye-crm-web` (`http://localhost:5000` y `https://localhost:5001`).
+3. Ejecuta las migraciones aditivas e idempotentes (`dotnet Paye.Web.dll --migrate`) dentro del contenedor.
+4. Abre Payé CRM en ventana de aplicación **PWA** independiente (`--app=https://localhost:5001`).
+
+### Actualizar cambios en el contenedor local
+
+- **Si cambias solo el frontend (`/web`)**:
   ```powershell
-  dotnet dev-certs https --trust
+  pnpm --dir web build
+  Remove-Item -Path "src/Paye.Web/wwwroot/assets" -Recurse -Force -ErrorAction SilentlyContinue
+  Copy-Item -Path "web/dist/*" -Destination "src/Paye.Web/wwwroot" -Recurse -Force
+  ```
+  Como `./src/Paye.Web/wwwroot` está montado en `/app/wwwroot:ro` dentro de `paye-crm-web`, los cambios se reflejan al instante al recargar el navegador sin reconstruir la imagen Docker.
+- **Si cambias el backend C# (`src/Paye.*`)**:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\scripts\iniciar-paye.ps1 --rebuild
   ```
 
 ---
 
-## 2. Base de Datos Local (PostgreSQL 17 en Docker)
+## 2. Requisitos Previos para Desarrollo Local
 
-Arrancar el contenedor de PostgreSQL 17 dedicado a desarrollo (puerto `5434` para evitar colisiones con instancias locales estándar):
-
-```powershell
-docker run -d `
-  --name paye-postgres `
-  -e POSTGRES_USER=paye_app `
-  -e POSTGRES_PASSWORD=paye_secure_dev_pass_2026 `
-  -e POSTGRES_DB=paye_local `
-  -p 127.0.0.1:5434:5432 `
-  -v paye_pgdata_dev:/var/lib/postgresql/data `
-  postgres:17-alpine
-```
-
-### Configuración de Secretos Locales (`dotnet user-secrets`)
-Prohibido almacenar cadenas de conexión o secretos en `appsettings.json`. Configurar en `src/Paye.Web`:
-
-```powershell
-cd src/Paye.Web
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=127.0.0.1;Port=5434;Database=paye_local;Username=paye_app;Password=paye_secure_dev_pass_2026"
-cd ../..
-```
-
-### Migraciones y Sembrado del Propietario
-Para aplicar migraciones y sembrar el usuario Propietario inicial:
-
-```powershell
-dotnet run --project src/Paye.Web -c Release -- --migrate --seed
-```
-
-> **Contraseña del Propietario**: La aplicación genera una contraseña criptográfica aleatoria de 20 caracteres y la imprime **UNA sola vez** en la consola al sembrar el usuario. Si deseas definir una contraseña específica en desarrollo, exporta la variable de entorno `PAYE_OWNER_PASSWORD` antes de ejecutar `--seed`.
-
-Usuario inicial sembrado:
-- **Email**: `propietario@payedigital.local`
-- **Rol**: `Propietario` (permisos completos: `Clientes.Ver`, `Clientes.Crear`, `Clientes.Editar`, `Clientes.Eliminar`, etc.)
+- **Docker Desktop** (para PostgreSQL 17 y el contenedor `paye-crm-web`)
+- **Node.js 20+** y **pnpm** (`pnpm -v >= 10.x`)
+- **.NET 10 SDK** (LTS)
 
 ---
 
-## 3. Modo A: Desarrollo (Frontend Vite con HMR + Backend API)
+## 3. Modo A: Desarrollo Frontend Vite con HMR (`http://localhost:5173`)
 
-Ideal para desarrollo activo del frontend y backend con recarga en caliente (Hot Module Replacement):
+Ideal para iterar rápidamente en la interfaz React 19 con Hot Module Replacement (HMR):
 
-1. **Terminal 1 - Backend Kestrel (HTTPS)**:
-   ```powershell
-   $env:ASPNETCORE_ENVIRONMENT = "Development"
-   $env:ASPNETCORE_URLS = "https://localhost:5001"
-   dotnet run --project src/Paye.Web -c Release
-   ```
-   - OpenAPI disponible en `https://localhost:5001/openapi/v1.json` (solo en Development).
-
-2. **Terminal 2 - Frontend Vite**:
+1. **Asegurar que el backend esté activo en `https://localhost:5001`** (vía `scripts/iniciar-paye.ps1` o `docker compose -f docker-compose.dev.yml up -d`).
+2. **Arrancar Vite en `/web`**:
    ```powershell
    cd web
    $env:VITE_USE_MOCKS = "false"
    pnpm dev
    ```
    - Vite arranca en `http://localhost:5173`.
-   - Las peticiones `/api/*` se redirigen por proxy al backend en `https://localhost:5001`.
-   - Las cookies de sesión `__Host-Paye.Auth` y antiforgery funcionan fluidamente bajo el mismo origen proxy.
 
 ---
 
-## 4. Modo B: Producción-Local (Monolito Integrado / Single-Origin)
+## 4. Modo B: Ejecución Nativa en Host (Sin Docker para `Paye.Web`)
 
-Este modo reproduce con fidelidad absoluta lo que ve y experimenta el cliente final en producción: el frontend compilado se sirve estáticamente desde `src/Paye.Web/wwwroot`, Kestrel ejecuta bajo `ASPNETCORE_ENVIRONMENT="Production"`, y se aplica la cabecera real y estricta de Content-Security-Policy (sin `unsafe-inline` ni `unsafe-eval`).
+Si tienes instalado el SDK oficial MSI de .NET 10 en `C:\Program Files\dotnet` (o en Linux/macOS):
 
-### Paso 1: Compilar la SPA y desplegar en wwwroot
-```powershell
-pnpm --dir web build
-Copy-Item -Path "web/dist/*" -Destination "src/Paye.Web/wwwroot" -Recurse -Force
-```
-
-### Paso 2: Arrancar Kestrel en Modo Producción
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = "Production"
 $env:ASPNETCORE_URLS = "https://localhost:5001;http://localhost:5000"
-dotnet run --project src/Paye.Web -c Release --no-build
+$env:ConnectionStrings__DefaultConnection = "Host=127.0.0.1;Port=5435;Database=paye_crm_asp;Username=paye_app;Password=paye_secure_dev_pass_2026"
+dotnet run --project src/Paye.Web -c Release
 ```
-
-### Paso 3: Probar en el Navegador
-Abre en tu navegador:
-👉 **`https://localhost:5001/sign-in`**
-
-- **Usuario**: `propietario@payedigital.local`
-- **Contraseña**: `<CONTRASEÑA_ALEATORIA_IMPRESA_POR_SEED>`
 
 ---
 
-## 5. Módulos Conectados vs. Módulos con Datos de Ejemplo
+## 5. Estado de Módulos e Integración Full-Stack
 
-En la versión actual de la integración vertical:
-- **Autenticación (`/sign-in`, `/api/auth/*`)**: 100% Real (Cookie HttpOnly `__Host-Paye.Auth`, bloqueo tras 5 intentos, rate limiting IP).
-- **Sesión y Permisos (`/api/me`, `/api/me/navigation`)**: 100% Real (filtrado dinámico de navegación según permisos de ASP.NET Core Identity).
-- **Gestión de Clientes (`/clientes`, `/api/clientes/*`)**: 100% Real (PostgreSQL, concurrencia optimista HTTP 409 con `xmin`, soft-delete, antiforgery token `X-XSRF-TOKEN`).
-- **Dashboard (`/`) y Tareas (`/tasks`)**: Cuentan con un distintivo visible `"Datos de ejemplo"` en la cabecera/sección, indicando que aún utilizan mocks tipados pendientes de conectar a sus respectivos módulos de backend en fases posteriores.
-
----
-
-## 6. Verificación Automatizada de Seguridad y CSP (Playwright)
-
-Para auditar el flujo completo de Modo B y certificar que no existen violaciones de CSP (`style-src 'self'`, `script-src 'self'`):
-
-```powershell
-node web/scripts/verify-modo-b.mjs
-```
-
-El script ejecuta de forma autónoma:
-1. Login autenticado con ASP.NET Core Identity.
-2. Comprobación del Dashboard y badge "Datos de ejemplo".
-3. Navegación a Gestión de Clientes.
-4. Alta de nuevo cliente con validación Zod y persistencia en PostgreSQL.
-5. Edición de cliente.
-6. Simulación de conflicto de concurrencia optimista HTTP 409 abriendo una segunda pestaña en paralelo.
-7. Borrado lógico (soft-delete).
-8. Cierre de sesión (logout).
-9. Generación de 22 capturas en modo claro y oscuro (`screenshots/modo_b/`) y verificación de 0 violaciones de CSP.
+- **Autenticación y Sesión (`/sign-in`, `/api/auth/*`, `/api/me`)**: 100% Real con ASP.NET Core Identity, Cookie `HttpOnly`, invalidación inmediata por `SecurityStampValidator` y navegación filtrada por permisos.
+- **Gestión de Clientes (`/clientes`, `/api/clientes/*`)**: 100% Real (PostgreSQL, borradores de departamentos, presupuestos y facturas vinculadas, concurrencia optimista HTTP 409 con `xmin`, soft-delete, token antiforgery).
+- **Facturación VERI\*FACTU, Presupuestos, Gastos y Trimestre (`/facturas`, `/gastos`, `/trimestre`, `/api/facturacion/*`)**: Emisión inmutable con triggers PostgreSQL, numeración correlativa sin huecos, facturas rectificativas, previsualización y exportación PDF A4 y resumen fiscal trimestral orientativo (Modelos 303 y 130).
+- **Documentación Corporativa A4 (`/documentacion`, `/api/documentacion/*`)**: 100% Real (plantillas multipágina A4, identidad visual y paleta de colores de empresa, series documentales, bloques estructurados, asistente IA Gemini y exportación PDF A4).
+- **Notas Operativas (`/notas`, `/api/notas/*`)**: 100% Real (CRUD, fijado, archivado, etiquetas de color, papelera y concurrencia `xmin`).
+- **Administración de Usuarios (`/users`, `/api/users/*`)**: 100% Real (gestión de cuentas, roles y estado activo/inactivo).

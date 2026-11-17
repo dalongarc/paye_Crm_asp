@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { toast } from 'sonner'
+import { useDeleteUserMutation } from '@/hooks/use-users'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,12 +22,19 @@ export function UsersDeleteDialog({
   currentRow,
 }: UserDeleteDialogProps) {
   const [value, setValue] = useState('')
+  const deleteMutation = useDeleteUserMutation()
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (value.trim() !== currentRow.username) return
 
-    onOpenChange(false)
-    showSubmittedData(currentRow, 'The following user has been deleted:')
+    try {
+      await deleteMutation.mutateAsync(currentRow.id)
+      toast.success(`Usuario ${currentRow.username} eliminado correctamente.`)
+      onOpenChange(false)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar el usuario.'
+      toast.error(msg)
+    }
   }
 
   return (
@@ -41,7 +49,7 @@ export function UsersDeleteDialog({
             className='me-1 inline-block stroke-destructive'
             size={18}
           />{' '}
-          Delete User
+          Eliminar Usuario
         </span>
       }
       desc={
@@ -54,35 +62,31 @@ export function UsersDeleteDialog({
           className='space-y-4'
         >
           <p className='mb-2'>
-            Are you sure you want to delete{' '}
+            ¿Estás seguro de que deseas eliminar al usuario{' '}
             <span className='font-bold'>{currentRow.username}</span>?
             <br />
-            This action will permanently remove the user with the role of{' '}
-            <span className='font-bold'>
-              {currentRow.role.toUpperCase()}
-            </span>{' '}
-            from the system. This cannot be undone.
+            Esta acción eliminará de forma permanente al usuario del sistema. Esta acción no se puede deshacer.
           </p>
 
           <Label className='my-2'>
-            Username:
+            Nombre de usuario:
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder='Enter username to confirm deletion.'
+              placeholder='Escribe el nombre de usuario para confirmar.'
               autoFocus
             />
           </Label>
 
           <Alert variant='destructive'>
-            <AlertTitle>Warning!</AlertTitle>
+            <AlertTitle>¡Atención!</AlertTitle>
             <AlertDescription>
-              Please be careful, this operation can not be rolled back.
+              Por favor ten cuidado, esta operación no se puede revertir.
             </AlertDescription>
           </Alert>
         </form>
       }
-      confirmText='Delete'
+      confirmText='Eliminar'
       destructive
     />
   )

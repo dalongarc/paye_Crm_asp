@@ -2,7 +2,7 @@ import { Outlet, useLocation } from '@tanstack/react-router'
 import {
   Building2,
   Percent,
-  FileSpreadsheet,
+  Palette,
   ShieldCheck,
   LockKeyhole,
 } from 'lucide-react'
@@ -25,9 +25,9 @@ const sidebarNavItems = [
     icon: <Percent size={18} />,
   },
   {
-    title: 'Plantillas de Factura',
+    title: 'Apariencia y Temas de Logo',
     href: '/settings/appearance',
-    icon: <FileSpreadsheet size={18} />,
+    icon: <Palette size={18} />,
   },
   {
     title: 'VeriFactu / AEAT',

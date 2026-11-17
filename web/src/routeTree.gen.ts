@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedTrimestreRouteImport } from './routes/_authenticated/trimestre'
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as errors500RouteImport } from './routes/(errors)/500'
@@ -24,9 +25,11 @@ import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authen
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedNotasIndexRouteImport } from './routes/_authenticated/notas/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
 import { Route as AuthenticatedGastosIndexRouteImport } from './routes/_authenticated/gastos/index'
 import { Route as AuthenticatedFacturasIndexRouteImport } from './routes/_authenticated/facturas/index'
+import { Route as AuthenticatedDocumentacionIndexRouteImport } from './routes/_authenticated/documentacion/index'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes/index'
 import { Route as AuthenticatedChatsIndexRouteImport } from './routes/_authenticated/chats/index'
 import { Route as AuthenticatedAppsIndexRouteImport } from './routes/_authenticated/apps/index'
@@ -35,6 +38,7 @@ import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
+import { Route as AuthenticatedDocumentacionPreviewRouteImport } from './routes/_authenticated/documentacion/preview'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -43,6 +47,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTrimestreRoute = AuthenticatedTrimestreRouteImport.update({
+  id: '/trimestre',
+  path: '/trimestre',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDesignRoute = AuthenticatedDesignRouteImport.update({
@@ -112,6 +121,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedNotasIndexRoute = AuthenticatedNotasIndexRouteImport.update({
+  id: '/notas/',
+  path: '/notas/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHelpCenterIndexRoute =
   AuthenticatedHelpCenterIndexRouteImport.update({
     id: '/help-center/',
@@ -128,6 +142,12 @@ const AuthenticatedFacturasIndexRoute =
   AuthenticatedFacturasIndexRouteImport.update({
     id: '/facturas/',
     path: '/facturas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDocumentacionIndexRoute =
+  AuthenticatedDocumentacionIndexRouteImport.update({
+    id: '/documentacion/',
+    path: '/documentacion/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClientesIndexRoute =
@@ -176,6 +196,12 @@ const AuthenticatedErrorsErrorRoute =
     path: '/errors/$error',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDocumentacionPreviewRoute =
+  AuthenticatedDocumentacionPreviewRouteImport.update({
+    id: '/documentacion/preview',
+    path: '/documentacion/preview',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -189,6 +215,8 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/design': typeof AuthenticatedDesignRoute
+  '/trimestre': typeof AuthenticatedTrimestreRoute
+  '/documentacion/preview': typeof AuthenticatedDocumentacionPreviewRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -197,9 +225,11 @@ export interface FileRoutesByFullPath {
   '/apps/': typeof AuthenticatedAppsIndexRoute
   '/chats/': typeof AuthenticatedChatsIndexRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
+  '/documentacion/': typeof AuthenticatedDocumentacionIndexRoute
   '/facturas/': typeof AuthenticatedFacturasIndexRoute
   '/gastos/': typeof AuthenticatedGastosIndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
+  '/notas/': typeof AuthenticatedNotasIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
@@ -214,7 +244,9 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/design': typeof AuthenticatedDesignRoute
+  '/trimestre': typeof AuthenticatedTrimestreRoute
   '/': typeof AuthenticatedIndexRoute
+  '/documentacion/preview': typeof AuthenticatedDocumentacionPreviewRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -223,9 +255,11 @@ export interface FileRoutesByTo {
   '/apps': typeof AuthenticatedAppsIndexRoute
   '/chats': typeof AuthenticatedChatsIndexRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
+  '/documentacion': typeof AuthenticatedDocumentacionIndexRoute
   '/facturas': typeof AuthenticatedFacturasIndexRoute
   '/gastos': typeof AuthenticatedGastosIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
+  '/notas': typeof AuthenticatedNotasIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -243,7 +277,9 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/design': typeof AuthenticatedDesignRoute
+  '/_authenticated/trimestre': typeof AuthenticatedTrimestreRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/documentacion/preview': typeof AuthenticatedDocumentacionPreviewRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -252,9 +288,11 @@ export interface FileRoutesById {
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
+  '/_authenticated/documentacion/': typeof AuthenticatedDocumentacionIndexRoute
   '/_authenticated/facturas/': typeof AuthenticatedFacturasIndexRoute
   '/_authenticated/gastos/': typeof AuthenticatedGastosIndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
+  '/_authenticated/notas/': typeof AuthenticatedNotasIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
@@ -273,6 +311,8 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/design'
+    | '/trimestre'
+    | '/documentacion/preview'
     | '/errors/$error'
     | '/settings/account'
     | '/settings/appearance'
@@ -281,9 +321,11 @@ export interface FileRouteTypes {
     | '/apps/'
     | '/chats/'
     | '/clientes/'
+    | '/documentacion/'
     | '/facturas/'
     | '/gastos/'
     | '/help-center/'
+    | '/notas/'
     | '/settings/'
     | '/tasks/'
     | '/users/'
@@ -298,7 +340,9 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/design'
+    | '/trimestre'
     | '/'
+    | '/documentacion/preview'
     | '/errors/$error'
     | '/settings/account'
     | '/settings/appearance'
@@ -307,9 +351,11 @@ export interface FileRouteTypes {
     | '/apps'
     | '/chats'
     | '/clientes'
+    | '/documentacion'
     | '/facturas'
     | '/gastos'
     | '/help-center'
+    | '/notas'
     | '/settings'
     | '/tasks'
     | '/users'
@@ -326,7 +372,9 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/design'
+    | '/_authenticated/trimestre'
     | '/_authenticated/'
+    | '/_authenticated/documentacion/preview'
     | '/_authenticated/errors/$error'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
@@ -335,9 +383,11 @@ export interface FileRouteTypes {
     | '/_authenticated/apps/'
     | '/_authenticated/chats/'
     | '/_authenticated/clientes/'
+    | '/_authenticated/documentacion/'
     | '/_authenticated/facturas/'
     | '/_authenticated/gastos/'
     | '/_authenticated/help-center/'
+    | '/_authenticated/notas/'
     | '/_authenticated/settings/'
     | '/_authenticated/tasks/'
     | '/_authenticated/users/'
@@ -369,6 +419,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/trimestre': {
+      id: '/_authenticated/trimestre'
+      path: '/trimestre'
+      fullPath: '/trimestre'
+      preLoaderRoute: typeof AuthenticatedTrimestreRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/design': {
@@ -462,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/notas/': {
+      id: '/_authenticated/notas/'
+      path: '/notas'
+      fullPath: '/notas/'
+      preLoaderRoute: typeof AuthenticatedNotasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/help-center/': {
       id: '/_authenticated/help-center/'
       path: '/help-center'
@@ -481,6 +545,13 @@ declare module '@tanstack/react-router' {
       path: '/facturas'
       fullPath: '/facturas/'
       preLoaderRoute: typeof AuthenticatedFacturasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/documentacion/': {
+      id: '/_authenticated/documentacion/'
+      path: '/documentacion'
+      fullPath: '/documentacion/'
+      preLoaderRoute: typeof AuthenticatedDocumentacionIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes/': {
@@ -539,6 +610,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrorsErrorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/documentacion/preview': {
+      id: '/_authenticated/documentacion/preview'
+      path: '/documentacion/preview'
+      fullPath: '/documentacion/preview'
+      preLoaderRoute: typeof AuthenticatedDocumentacionPreviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -568,14 +646,18 @@ const AuthenticatedSettingsRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
+  AuthenticatedTrimestreRoute: typeof AuthenticatedTrimestreRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedDocumentacionPreviewRoute: typeof AuthenticatedDocumentacionPreviewRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
   AuthenticatedChatsIndexRoute: typeof AuthenticatedChatsIndexRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
+  AuthenticatedDocumentacionIndexRoute: typeof AuthenticatedDocumentacionIndexRoute
   AuthenticatedFacturasIndexRoute: typeof AuthenticatedFacturasIndexRoute
   AuthenticatedGastosIndexRoute: typeof AuthenticatedGastosIndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
+  AuthenticatedNotasIndexRoute: typeof AuthenticatedNotasIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
 }
@@ -583,14 +665,19 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
+  AuthenticatedTrimestreRoute: AuthenticatedTrimestreRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedDocumentacionPreviewRoute:
+    AuthenticatedDocumentacionPreviewRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
   AuthenticatedChatsIndexRoute: AuthenticatedChatsIndexRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
+  AuthenticatedDocumentacionIndexRoute: AuthenticatedDocumentacionIndexRoute,
   AuthenticatedFacturasIndexRoute: AuthenticatedFacturasIndexRoute,
   AuthenticatedGastosIndexRoute: AuthenticatedGastosIndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
+  AuthenticatedNotasIndexRoute: AuthenticatedNotasIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
 }

@@ -21,6 +21,23 @@ let mockClientes: ClienteDto[] = [
     ciudad: 'Madrid',
     provincia: 'Madrid',
     activo: true,
+    esBorrador: false,
+    departamentos: [
+      {
+        id: 'dpto-1',
+        nombre: 'Administración y Facturación',
+        telefono: '+34 912 345 679',
+        personaContacto: 'Laura Gómez',
+        email: 'facturacion@acme.test',
+      },
+      {
+        id: 'dpto-2',
+        nombre: 'Soporte Técnico',
+        telefono: '+34 912 345 680',
+        personaContacto: 'Carlos Ruiz',
+        email: 'soporte@acme.test',
+      },
+    ],
     notas: 'Cliente principal cuenta premium.',
     rowVersion: 1001,
     createdAtUtc: new Date(Date.now() - 30 * 86400000).toISOString(),
@@ -112,11 +129,13 @@ export class MockClientesApi implements IClientesApi {
 
   async createCliente(data: CreateClienteRequest): Promise<ClienteDto> {
     await new Promise((resolve) => setTimeout(resolve, 100))
+    const cifClean = (data.cifNif || '').trim().toUpperCase()
+    const esBorrador = !cifClean || Boolean(data.esBorrador)
     const nuevo: ClienteDto = {
       id: crypto.randomUUID(),
       nombreFiscal: data.nombreFiscal,
       nombreComercial: data.nombreComercial || '',
-      cifNif: data.cifNif,
+      cifNif: cifClean,
       email: data.email || '',
       telefono: data.telefono || '',
       direccion: data.direccion || '',
@@ -124,6 +143,8 @@ export class MockClientesApi implements IClientesApi {
       ciudad: data.ciudad || '',
       provincia: data.provincia || '',
       activo: data.activo ?? true,
+      esBorrador,
+      departamentos: data.departamentos || [],
       notas: data.notas || null,
       rowVersion: Math.floor(Math.random() * 100000) + 1,
       createdAtUtc: new Date().toISOString(),
@@ -156,11 +177,14 @@ export class MockClientesApi implements IClientesApi {
       )
     }
 
+    const cifClean = (data.cifNif || '').trim().toUpperCase()
+    const esBorrador = !cifClean || Boolean(data.esBorrador)
+
     const updated: ClienteDto = {
       ...current,
       nombreFiscal: data.nombreFiscal,
       nombreComercial: data.nombreComercial || '',
-      cifNif: data.cifNif,
+      cifNif: cifClean,
       email: data.email || '',
       telefono: data.telefono || '',
       direccion: data.direccion || '',
@@ -168,6 +192,8 @@ export class MockClientesApi implements IClientesApi {
       ciudad: data.ciudad || '',
       provincia: data.provincia || '',
       activo: data.activo ?? current.activo,
+      esBorrador,
+      departamentos: data.departamentos ?? current.departamentos ?? [],
       notas: data.notas ?? current.notas,
       rowVersion: Number(current.rowVersion) + 1,
       updatedAtUtc: new Date().toISOString(),

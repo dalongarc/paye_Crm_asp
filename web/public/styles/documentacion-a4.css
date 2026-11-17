@@ -1,0 +1,850 @@
+/* ============================================================================
+   PAYÉ DIGITAL — SISTEMA DE PLANTILLAS A4 (CONTRATOS Y PRESUPUESTOS)
+   Réplica fiel 1:1 del diseño PDF (Alpe_Web.pdf) con variables CSS centralizadas.
+   Se utiliza exactamente el mismo HTML y CSS en Vista Previa en vivo y en PDF.
+   ============================================================================ */
+
+:root,
+.doc-a4-root {
+  /* Tipografía extraída de los metadatos internos del PDF */
+  --doc-font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+
+  /* Paleta cromática extraída del PDF y recursos PNG */
+  --doc-color-amber: #F4A518;
+  --doc-color-amber-soft: #FEF6E6;
+  --doc-color-red: #DF1216;
+  --doc-color-black: #000000;
+  --doc-color-page-bg: #FFFFFF;
+  --doc-color-text: #000000;
+  --doc-color-text-secondary: #27272A;
+  --doc-color-text-muted: #71717A;
+  --doc-color-border: #E4E4E7;
+
+  /* Dimensiones físicas A4 exactas (210mm x 297mm) */
+  --doc-page-width: 210mm;
+  --doc-page-height: 297mm;
+  --doc-page-pad-x: 19mm;
+  --doc-page-pad-top: 19mm;
+  --doc-page-pad-bottom: 15mm;
+
+  /* Radios y grosores del diseño original */
+  --doc-pill-radius: 12px;
+  --doc-callout-radius: 38px;
+  --doc-footer-badge-radius: 12px;
+  --doc-timeline-line-width: 2.5px;
+  --doc-timeline-node-size: 42px;
+}
+
+.doc-a4-root,
+.doc-a4-root *,
+.doc-a4-sheet,
+.doc-a4-cover,
+.doc-pill-heading,
+.doc-highlight-cost-box,
+.doc-timeline-badge,
+.doc-pricing-table thead tr,
+.doc-pricing-summary-card,
+.doc-pricing-summary-total,
+.doc-party-card,
+.doc-party-role,
+.doc-contract-summary-strip,
+.doc-footer-logo-pill {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+.doc-a4-root {
+  font-family: var(--doc-font-family);
+  color: var(--doc-color-text);
+}
+
+/* Contenedor de páginas en la vista previa tipo Canva */
+.doc-a4-preview-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 24px 16px 48px;
+}
+
+.doc-zoom-70 {
+  zoom: 0.7;
+}
+
+.doc-zoom-85 {
+  zoom: 0.85;
+}
+
+.doc-zoom-100 {
+  zoom: 1;
+}
+
+/* Hoja A4 individual (210mm x 297mm estrictos sin desbordamiento) */
+.doc-a4-sheet {
+  width: var(--doc-page-width);
+  height: var(--doc-page-height);
+  min-height: var(--doc-page-height);
+  max-height: var(--doc-page-height);
+  background-color: var(--doc-color-page-bg);
+  color: var(--doc-color-text);
+  font-family: var(--doc-font-family);
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  page-break-after: always;
+  break-after: page;
+}
+
+.doc-a4-sheet:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+/* ============================================================================
+   PÁGINA 1: PORTADA A4 (FONDO NEGRO #000000 — IDÉNTICA A PÁGINA 1 DE Alpe_Web.pdf)
+   ============================================================================ */
+.doc-a4-cover {
+  background-color: var(--doc-color-black);
+  color: #FFFFFF;
+  padding: 28mm 22mm 26mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.doc-cover-cenefa-top {
+  width: 100%;
+  max-width: 150mm;
+  height: 22px;
+  object-fit: contain;
+  opacity: 0.92;
+}
+
+.doc-cover-top-spacer {
+  min-height: 26mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-cover-doc-number {
+  font-size: 9.5pt;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.doc-cover-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 170mm;
+  margin: auto 0;
+  transform: translateY(-8mm);
+}
+
+.doc-cover-kind {
+  font-family: var(--doc-font-family);
+  font-size: 38pt;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.doc-cover-client {
+  font-family: var(--doc-font-family);
+  font-size: 36pt;
+  font-weight: 900;
+  line-height: 1.14;
+  color: #FFFFFF;
+  margin: 2px 0 28px;
+}
+
+.doc-cover-title {
+  font-family: var(--doc-font-family);
+  font-size: 19.5pt;
+  font-weight: 400;
+  line-height: 1.32;
+  color: #FFFFFF;
+  margin: 0 0 46px;
+}
+
+.doc-cover-category {
+  font-family: var(--doc-font-family);
+  font-size: 13.5pt;
+  font-weight: 400;
+  font-style: italic;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.doc-cover-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.doc-cover-logo {
+  height: 152px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ============================================================================
+   PÁGINAS INTERIORES A4 (CONTENIDO + CABECERA OPCIONAL + PIE)
+   ============================================================================ */
+.doc-a4-interior {
+  padding: var(--doc-page-pad-top) var(--doc-page-pad-x) var(--doc-page-pad-bottom);
+}
+
+.doc-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--doc-color-border);
+  font-size: 8.2pt;
+  color: var(--doc-color-text-muted);
+}
+
+.doc-page-header-issuer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--doc-color-text-secondary);
+}
+
+.doc-page-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--doc-color-text);
+}
+
+.doc-page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Bloques individuales: prohibido cortar por la mitad en salto de página */
+.doc-block-wrapper {
+  position: relative;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Pastilla Ámbar de Título de Sección (1. INTRODUCCIÓN, 2. FUNCIONAMIENTO, etc.) */
+.doc-pill-heading {
+  display: inline-block;
+  background-color: var(--doc-color-amber);
+  color: var(--doc-color-black);
+  font-family: var(--doc-font-family);
+  font-size: 16.5pt;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 7px 17px;
+  border-radius: var(--doc-pill-radius);
+  margin: 0 0 12px 0;
+}
+
+/* Cuerpo de texto de sección (Montserrat Regular 12.4pt, interlineado 1.34 como en el PDF) */
+.doc-section-body {
+  font-family: var(--doc-font-family);
+  font-size: 12.3pt;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--doc-color-text);
+}
+
+.doc-section-body p {
+  margin: 0;
+}
+
+.doc-section-body p + p {
+  margin-top: 6px;
+}
+
+.doc-section-body p:empty,
+.doc-section-body li:empty {
+  display: none;
+}
+
+.doc-section-body li.doc-li-continuation {
+  list-style-type: none;
+}
+
+.doc-section-body strong,
+.doc-section-body b {
+  font-weight: 700;
+}
+
+.doc-section-body em,
+.doc-section-body i {
+  font-style: italic;
+}
+
+.doc-section-body ul {
+  list-style-type: disc;
+  padding-left: 24px;
+  margin: 3px 0 6px;
+}
+
+.doc-section-body ul ul {
+  list-style-type: circle;
+  padding-left: 24px;
+  margin: 2px 0 4px;
+}
+
+.doc-section-body ul ul ul {
+  list-style-type: square;
+  padding-left: 22px;
+  margin: 2px 0 4px;
+}
+
+.doc-section-body ol {
+  list-style-type: decimal;
+  padding-left: 24px;
+  margin: 4px 0 8px;
+}
+
+.doc-section-body li {
+  margin-bottom: 3px;
+}
+
+/* ============================================================================
+   BLOQUE DESTACADO: RESUMEN DE COSTES (PÁGINA 2 DEL PDF CON ASTERISCO ROJO)
+   ============================================================================ */
+.doc-highlight-cost-box {
+  position: relative;
+  background-color: var(--doc-color-amber);
+  color: var(--doc-color-black);
+  border-radius: var(--doc-callout-radius);
+  padding: 26px 115px 28px 36px;
+  margin-top: 6px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.doc-highlight-cost-title {
+  font-family: var(--doc-font-family);
+  font-size: 13.5pt;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  color: var(--doc-color-black);
+}
+
+.doc-highlight-cost-total-line {
+  font-family: var(--doc-font-family);
+  font-size: 13pt;
+  font-weight: 800;
+  margin-top: 6px;
+  padding-left: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-highlight-sparkle {
+  position: absolute;
+  top: -24px;
+  right: -16px;
+  width: 148px;
+  height: 148px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ============================================================================
+   BLOQUE TIMELINE A / B / C (PÁGINA 4 DEL PDF: 5. Costes)
+   ============================================================================ */
+.doc-timeline-lead {
+  font-size: 13.2pt;
+  font-weight: 400;
+  margin: 0 0 18px 0 !important;
+}
+
+.doc-timeline-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 2px;
+}
+
+.doc-timeline-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Línea vertical negra de conexión entre los nodos A, B, C con puntos terminales */
+.doc-timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--doc-timeline-node-size) / 2 - (var(--doc-timeline-line-width) / 2));
+  top: calc(var(--doc-timeline-node-size) + 5px);
+  bottom: -11px;
+  width: var(--doc-timeline-line-width);
+  background-color: var(--doc-color-black);
+  z-index: 1;
+}
+
+.doc-timeline-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--doc-timeline-node-size) / 2 - 3.5px);
+  top: calc(var(--doc-timeline-node-size) + 3px);
+  bottom: -13px;
+  width: 7px;
+  background-image:
+    radial-gradient(circle, var(--doc-color-black) 3.2px, transparent 3.5px),
+    radial-gradient(circle, var(--doc-color-black) 3.2px, transparent 3.5px);
+  background-size: 7px 7px;
+  background-position: top center, bottom center;
+  background-repeat: no-repeat;
+  z-index: 2;
+}
+
+.doc-timeline-badge {
+  width: var(--doc-timeline-node-size);
+  height: var(--doc-timeline-node-size);
+  min-width: var(--doc-timeline-node-size);
+  border-radius: 9999px;
+  background-color: var(--doc-color-amber);
+  color: var(--doc-color-black);
+  font-family: var(--doc-font-family);
+  font-size: 14pt;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.doc-timeline-body {
+  flex: 1;
+  padding-top: 2px;
+}
+
+.doc-timeline-body h4 {
+  font-family: var(--doc-font-family);
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--doc-color-black);
+  margin: 0 0 6px 0;
+}
+
+/* ============================================================================
+   TABLA DE LÍNEAS DE PRESUPUESTO Y DESGLOSE MULTI-IVA
+   ============================================================================ */
+.doc-pricing-table-wrap {
+  margin-top: 6px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.doc-pricing-table-frame {
+  margin-top: 10px;
+  border: 1.8px solid var(--doc-color-red);
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(223, 18, 22, 0.06);
+}
+
+.doc-pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--doc-font-family);
+  font-size: 11pt;
+  margin: 0;
+}
+
+.doc-pricing-table thead tr {
+  background-color: var(--doc-color-black);
+  color: #FFFFFF;
+  border-bottom: 2.5px solid var(--doc-color-red);
+}
+
+.doc-pricing-table th {
+  font-weight: 800;
+  text-align: left;
+  padding: 12px 18px;
+  font-size: 9.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+}
+
+.doc-pricing-table th.num,
+.doc-pricing-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.doc-col-desc {
+  width: auto;
+  min-width: 65%;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.doc-col-narrow {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.doc-col-price {
+  width: 1%;
+  min-width: 36mm;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.doc-col-total {
+  width: 1%;
+  min-width: 36mm;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.doc-mt-sm {
+  margin-top: 10px;
+}
+
+.doc-signature-place-date {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.doc-pricing-table tbody tr {
+  border-bottom: 1px solid var(--doc-color-border);
+  break-inside: avoid;
+}
+
+.doc-pricing-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.doc-pricing-table tbody tr:nth-child(even) {
+  background-color: #FAFAFA;
+}
+
+.doc-pricing-table td {
+  padding: 12px 18px;
+  vertical-align: middle;
+  color: var(--doc-color-text);
+  font-size: 11pt;
+  line-height: 1.45;
+}
+
+.doc-pricing-summary-grid {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  break-inside: avoid;
+}
+
+.doc-pricing-summary-card {
+  width: 88mm;
+  background-color: var(--doc-color-amber-soft);
+  border: 1.5px solid var(--doc-color-red);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc-pricing-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.8pt;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  gap: 10px;
+}
+
+.doc-pricing-summary-row.vat-row {
+  font-size: 9.2pt;
+  color: var(--doc-color-text-secondary);
+}
+
+.doc-pricing-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--doc-color-amber);
+  color: var(--doc-color-black);
+  font-weight: 900;
+  font-size: 11.5pt;
+  padding: 8px 13px;
+  border-radius: 10px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   BLOQUES ESPECÍFICOS DE CONTRATOS (PARTES Y FIRMAS)
+   ============================================================================ */
+.doc-parties-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 8px 0 10px;
+  break-inside: avoid;
+}
+
+.doc-party-card {
+  border: 1.5px solid var(--doc-color-black);
+  border-radius: 14px;
+  padding: 11px 14px;
+  background-color: #FAFAFA;
+  font-size: 9.2pt;
+  line-height: 1.42;
+}
+
+.doc-party-role {
+  display: inline-block;
+  background-color: var(--doc-color-amber);
+  color: var(--doc-color-black);
+  font-weight: 800;
+  font-size: 8.2pt;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.doc-contract-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background-color: var(--doc-color-amber-soft);
+  border: none;
+  border-radius: 12px;
+  padding: 11px 16px;
+  margin-top: 8px;
+  font-size: 9.4pt;
+  break-inside: avoid;
+}
+
+.doc-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-top: 14px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.doc-signature-box {
+  border: 1.5px dashed #A1A1AA;
+  border-radius: 14px;
+  padding: 12px 15px;
+  min-height: 32mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: #FFFFFF;
+}
+
+.doc-signature-line {
+  border-top: 1.5px solid var(--doc-color-black);
+  padding-top: 6px;
+  font-size: 8.8pt;
+  font-weight: 700;
+}
+
+/* ============================================================================
+   PIE DE PÁGINA A4 (LOGO EN PASTILLA NEGRA + TEXTO LEGAL + PAGINACIÓN)
+   ============================================================================ */
+.doc-a4-footer {
+  margin-top: auto;
+  padding-top: 15mm;
+  padding-bottom: 2mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  flex-shrink: 0;
+}
+
+.doc-footer-logo-pill {
+  background-color: var(--doc-color-black);
+  border-radius: 12px;
+  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-footer-logo-img {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
+.doc-footer-legal {
+  max-width: 168mm;
+  margin-top: 2px;
+}
+
+.doc-footer-legal-title {
+  font-family: var(--doc-font-family);
+  font-size: 9.6pt;
+  font-weight: 800;
+  color: var(--doc-color-black);
+  margin: 0 0 3px 0;
+}
+
+.doc-footer-legal-text {
+  font-family: var(--doc-font-family);
+  font-size: 8.4pt;
+  font-weight: 300;
+  line-height: 1.36;
+  color: var(--doc-color-text-muted);
+  margin: 0;
+}
+
+.doc-footer-company-contact {
+  font-size: 7.8pt;
+  color: var(--doc-color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.doc-footer-page-number {
+  font-family: var(--doc-font-family);
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: var(--doc-color-black);
+  margin-top: 1px;
+}
+
+/* ============================================================================
+   REGLAS @media print PARA EXPORTACIÓN VECTORIAL A4 IDÉNTICA A LA VISTA PREVIA
+   ============================================================================ */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body,
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    overflow: visible !important;
+  }
+
+  /* Defensa adicional: ocultar cualquier elemento del shell de la app */
+  a[href='#content'],
+  [data-slot='sidebar'],
+  [data-slot='sidebar-gap'],
+  [data-slot='sidebar-container'],
+  [data-sidebar],
+  [data-sonner-toaster],
+  aside,
+  nav,
+  header:not(.doc-page-header),
+  [role='tablist'],
+  .print\:hidden {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  #root,
+  #content,
+  main,
+  .doc-zoom-70,
+  .doc-zoom-85,
+  .doc-zoom-100 {
+    zoom: 1 !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .doc-a4-preview-stack {
+    display: block !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #FFFFFF !important;
+  }
+
+  .doc-a4-sheet {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .doc-a4-cover {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+  }
+
+  .doc-a4-sheet:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}

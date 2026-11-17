@@ -5,17 +5,18 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useUsersQuery } from '@/hooks/use-users'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersProvider } from './components/users-provider'
 import { UsersTable } from './components/users-table'
-import { users } from './data/users'
 
 const route = getRouteApi('/_authenticated/users/')
 
 export function Users() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+  const { data: usersData = [], isLoading } = useUsersQuery()
 
   return (
     <UsersProvider>
@@ -39,7 +40,13 @@ export function Users() {
         <div className='flex justify-end'>
           <UsersPrimaryButtons />
         </div>
-        <UsersTable data={users} search={search} navigate={navigate} />
+        {isLoading ? (
+          <div className='flex flex-1 items-center justify-center p-8 text-muted-foreground text-sm'>
+            Cargando usuarios desde PostgreSQL...
+          </div>
+        ) : (
+          <UsersTable data={usersData} search={search} navigate={navigate} />
+        )}
       </Main>
 
       <UsersDialogs />

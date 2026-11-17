@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { Link } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,8 +13,12 @@ import {
   Trash2,
   Save,
   Database,
+  Palette,
+  Sparkles,
+  HelpCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { api } from '@/api'
 import {
   useBillingStore,
   billingActions,
@@ -37,6 +42,57 @@ export function SettingsProfile() {
   const [registroMercantil, setRegistroMercantil] = useState(company.registroMercantil)
   const [pieFactura, setPieFactura] = useState(company.pieFactura)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+
+  // Ajustes de Modelo de IA (Google Gemini) para Documentación
+  const [modeloIa, setModeloIa] = useState('gemini-3.8-flash')
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState('')
+  const [isSavingAiSettings, setIsSavingAiSettings] = useState(false)
+
+  useEffect(() => {
+    api.documentacion
+      .getCompanySettings()
+      .then((s) => {
+        if (s?.modeloIa) {
+          setModeloIa(s.modeloIa)
+        }
+      })
+      .catch(() => {
+        // Mantener valor por defecto si aún no se ha inicializado
+      })
+  }, [])
+
+  const handleSaveAiSettings = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSavingAiSettings(true)
+    try {
+      const current = await api.documentacion.getCompanySettings()
+      await api.documentacion.updateCompanySettings({
+        nombreEmpresa: current.nombreEmpresa || nombreComercial || 'Payé Digital',
+        cifNif: current.cifNif || nifCif || '',
+        direccion: current.direccion || direccionFiscal || '',
+        telefono: current.telefono || telefono || '',
+        email: current.email || emailFacturacion || '',
+        web: current.web || 'www.payedigital.com',
+        iban: current.iban || iban || '',
+        logoUrl: current.logoUrl || '/images/documentacion/logo-paye-horizontal.png',
+        textoLegalTitulo: current.textoLegalTitulo || 'NOTA CONFIDENCIAL',
+        textoLegalContenido: current.textoLegalContenido || '',
+        modeloIa,
+        geminiApiKey: geminiApiKeyInput.trim() || undefined,
+        rowVersion: current.rowVersion || 1,
+      })
+      setGeminiApiKeyInput('')
+      toast.success(`Modelo de IA (${modeloIa}) y configuración de Gemini guardados en el servidor`)
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo guardar la configuración de IA.'
+      )
+    } finally {
+      setIsSavingAiSettings(false)
+    }
+  }
 
   // Subir imagen, convertir a WebP al 65% de calidad y guardar en la Base de Datos (PrivateFiles)
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,22 +252,35 @@ export function SettingsProfile() {
                 </Button>
 
                 {company.logoWebpDataUrl && (
-                  <Button
-                    type='button'
-                    variant='outline'
-                    size='sm'
-                    className='h-8 text-xs gap-1 text-destructive'
-                    onClick={() => {
-                      billingActions.updateCompany({
-                        logoWebpDataUrl: null,
-                        logoPrivateFileId: null,
-                      })
-                      toast.info('Logotipo eliminado de la configuración.')
-                    }}
-                  >
-                    <Trash2 className='h-3.5 w-3.5' />
-                    <span>Quitar logo</span>
-                  </Button>
+                  <>
+                    <Button
+                      asChild
+                      variant='outline'
+                      size='sm'
+                      className='h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10'
+                    >
+                      <Link to='/settings/appearance'>
+                        <Palette className='h-3.5 w-3.5' />
+                        <span>Generar temas desde este logo</span>
+                      </Link>
+                    </Button>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      className='h-8 text-xs gap-1 text-destructive'
+                      onClick={() => {
+                        billingActions.updateCompany({
+                          logoWebpDataUrl: null,
+                          logoPrivateFileId: null,
+                        })
+                        toast.info('Logotipo eliminado de la configuración.')
+                      }}
+                    >
+                      <Trash2 className='h-3.5 w-3.5' />
+                      <span>Quitar logo</span>
+                    </Button>
+                  </>
                 )}
               </div>
 
@@ -355,26 +424,78 @@ export function SettingsProfile() {
 
             <Separator />
 
-            <div className='grid sm:grid-cols-2 gap-3'>
-              <div>
-                <label className='text-xs font-medium text-foreground'>
-                  Inscripción Registro Mercantil / Mención Legal
-                </label>
-                <Input
-                  value={registroMercantil}
-                  onChange={(e) => setRegistroMercantil(e.target.value)}
-                  className='h-9 text-xs mt-1'
-                />
+            <div className='space-y-3 rounded-xl border border-border/80 bg-muted/20 p-3.5'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
+                <div className='flex items-center gap-1.5 text-xs font-semibold text-foreground'>
+                  <HelpCircle className='h-3.5 w-3.5 text-primary' />
+                  <span>¿Cómo rellenar la Mención Legal y el Pie de Factura?</span>
+                </div>
+                <div className='flex flex-wrap items-center gap-1.5'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    className='h-7 px-2.5 text-[11px]'
+                    onClick={() => {
+                      setRegistroMercantil(
+                        'Profesional autónomo inscrito en el Censo de Empresarios, Profesionales y Retenedores de la AEAT.'
+                      )
+                      setPieFactura(
+                        'Operación sujeta al régimen general de IVA. Factura emitida conforme al RD 1619/2012.'
+                      )
+                      toast.info('Plantilla para Autónomo aplicada. Pulsa «Guardar Datos de la Empresa».')
+                    }}
+                  >
+                    Soy Autónomo (Rellenar automático)
+                  </Button>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    className='h-7 px-2.5 text-[11px]'
+                    onClick={() => {
+                      setRegistroMercantil(
+                        'Inscrita en el Registro Mercantil de A Coruña, Tomo [X], Folio [Y], Hoja [Z].'
+                      )
+                      setPieFactura(
+                        'Régimen general del IVA. Factura verificable conforme al Real Decreto 1007/2023 (VeriFactu).'
+                      )
+                      toast.info('Plantilla para Sociedad (S.L.) aplicada. Completa Tomo/Folio/Hoja de tu escritura.')
+                    }}
+                  >
+                    Soy Sociedad S.L. (Plantilla)
+                  </Button>
+                </div>
               </div>
-              <div>
-                <label className='text-xs font-medium text-foreground'>
-                  Pie de Página de Factura
-                </label>
-                <Input
-                  value={pieFactura}
-                  onChange={(e) => setPieFactura(e.target.value)}
-                  className='h-9 text-xs mt-1'
-                />
+
+              <p className='text-[11px] text-muted-foreground leading-relaxed'>
+                • <strong>Si eres Autónomo (NIF con letra al final, ej. 12345678Z):</strong> No tienes obligación de estar en el Registro Mercantil. Pulsa el botón <em>«Soy Autónomo»</em> o déjalo en blanco.<br />
+                • <strong>Si eres Sociedad S.L. (CIF que empieza por B):</strong> Busca el <em>Tomo, Folio y Hoja</em> en el sello de la última página de tu Escritura de Constitución ante notario.
+              </p>
+
+              <div className='grid sm:grid-cols-2 gap-3 pt-1'>
+                <div>
+                  <label className='text-xs font-medium text-foreground'>
+                    Inscripción Registro Mercantil / Mención Legal
+                  </label>
+                  <Input
+                    value={registroMercantil}
+                    onChange={(e) => setRegistroMercantil(e.target.value)}
+                    placeholder='Autónomo (AEAT) o datos del Registro Mercantil...'
+                    className='h-9 text-xs mt-1'
+                  />
+                </div>
+                <div>
+                  <label className='text-xs font-medium text-foreground'>
+                    Pie de Página de Factura
+                  </label>
+                  <Input
+                    value={pieFactura}
+                    onChange={(e) => setPieFactura(e.target.value)}
+                    placeholder='Régimen general del IVA...'
+                    className='h-9 text-xs mt-1'
+                  />
+                </div>
               </div>
             </div>
 
@@ -387,6 +508,91 @@ export function SettingsProfile() {
               >
                 <Save className='h-3.5 w-3.5' />
                 <span>Guardar Datos de la Empresa</span>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* TARJETA DE MODELO DE IA (GOOGLE GEMINI) PARA PRESUPUESTOS Y CONTRATOS */}
+      <Card className='border-border/80 shadow-xs'>
+        <CardHeader className='pb-3'>
+          <div className='flex items-center justify-between gap-2'>
+            <CardTitle className='text-sm font-semibold flex items-center gap-2'>
+              <Sparkles className='h-4 w-4 text-amber-500' />
+              <span>Inteligencia Artificial (Google Gemini) · Redacción de Documentación</span>
+            </CardTitle>
+            <Badge variant='outline' className='font-mono text-[11px]'>
+              Activo: {modeloIa}
+            </Badge>
+          </div>
+          <CardDescription className='text-xs'>
+            Elige aquí el modelo de IA que redacta los borradores de Presupuestos y Contratos en la pestaña «Origen de datos» y actualiza la clave API del servidor si lo necesitas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveAiSettings} className='space-y-4'>
+            <div className='grid sm:grid-cols-2 gap-3'>
+              <div>
+                <label className='text-xs font-medium text-foreground'>
+                  Seleccionar Modelo de IA (Google Gemini)
+                </label>
+                <select
+                  aria-label='Seleccionar Modelo de IA'
+                  value={modeloIa}
+                  onChange={(e) => setModeloIa(e.target.value)}
+                  className='w-full h-9 rounded-md border border-input bg-background px-3 text-xs font-mono mt-1'
+                  data-testid='select-modelo-ia-settings-page'
+                >
+                  <option value='gemini-3.8-flash'>
+                    gemini-3.8-flash (Actual · Recomendado · Rápido y preciso)
+                  </option>
+                  <option value='gemini-3.8-pro'>
+                    gemini-3.8-pro (Actual · Máxima calidad de redacción)
+                  </option>
+                  <option value='gemini-2.5-flash'>
+                    gemini-2.5-flash (Estable · Rápido y equilibrado)
+                  </option>
+                  <option value='gemini-2.5-pro'>
+                    gemini-2.5-pro (Estable · Redacción profunda)
+                  </option>
+                  <option value='gemini-2.5-flash-lite'>
+                    gemini-2.5-flash-lite (Ultra rápido y económico)
+                  </option>
+                  <option value='gemini-2.0-flash'>
+                    gemini-2.0-flash (Versión 2.0)
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className='text-xs font-medium text-foreground'>
+                  Clave API de Gemini en servidor (Opcional · Ya configurada)
+                </label>
+                <Input
+                  type='password'
+                  value={geminiApiKeyInput}
+                  onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                  placeholder='Dejar vacío para mantener la clave actual del servidor...'
+                  className='h-9 text-xs font-mono mt-1'
+                />
+              </div>
+            </div>
+
+            <div className='flex justify-end'>
+              <Button
+                type='submit'
+                size='sm'
+                disabled={isSavingAiSettings}
+                className='h-9 text-xs gap-1.5 shadow-2xs'
+                data-testid='btn-guardar-modelo-ia'
+              >
+                <Save className='h-3.5 w-3.5' />
+                <span>
+                  {isSavingAiSettings
+                    ? 'Guardando...'
+                    : 'Guardar Modelo de IA y Clave'}
+                </span>
               </Button>
             </div>
           </form>

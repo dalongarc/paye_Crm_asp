@@ -54,13 +54,15 @@ export function ConfigDrawer() {
       </SheetTrigger>
       <SheetContent className='flex flex-col'>
         <SheetHeader className='pb-0 text-start'>
-          <SheetTitle>Theme Settings</SheetTitle>
+          <SheetTitle>Configuración Visual y Tema</SheetTitle>
           <SheetDescription>
-            Adjust the appearance and layout to suit your preferences.
+            Ajusta el modo de iluminación, paleta cromática 2026 y distribución del sistema.
           </SheetDescription>
         </SheetHeader>
         <div className='space-y-6 overflow-y-auto px-4'>
           <ThemeConfig />
+          <StyleConfig />
+          <PaletteConfig />
           <SidebarConfig />
           <LayoutConfig />
           <DirConfig />
@@ -69,9 +71,9 @@ export function ConfigDrawer() {
           <Button
             variant='destructive'
             onClick={handleReset}
-            aria-label='Reset all settings to default values'
+            aria-label='Restablecer todas las preferencias'
           >
-            Reset
+            Restablecer valores base
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -211,6 +213,91 @@ function ThemeConfig() {
       </Radio>
       <div id='theme-description' className='sr-only'>
         Choose between system preference, light mode, or dark mode
+      </div>
+    </div>
+  )
+}
+
+function StyleConfig() {
+  const { style, setStyle, systemStyles } = useTheme()
+  return (
+    <div>
+      <SectionTitle
+        title='Estilo Visual (Forma y Estructura)'
+        showReset={style !== 'aurora'}
+        onReset={() => setStyle('aurora')}
+        resetAriaLabel='Restablecer estilo a Aurora Glass'
+      />
+      <div className='grid grid-cols-2 gap-2 pt-1'>
+        {systemStyles.map((s) => {
+          const isSelected = style === s.id
+          return (
+            <button
+              key={s.id}
+              type='button'
+              onClick={() => setStyle(s.id)}
+              className={cn(
+                'group relative flex flex-col items-start gap-1 p-2 rounded-lg border text-left transition-all',
+                isSelected
+                  ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                  : 'border-border/70 hover:border-primary/50 hover:bg-muted/30'
+              )}
+            >
+              <div className='flex items-center justify-between w-full'>
+                <span className='text-xs font-semibold text-foreground truncate'>
+                  {s.name}
+                </span>
+                {isSelected && (
+                  <CircleCheck className='size-3.5 fill-primary stroke-background' />
+                )}
+              </div>
+              <span className='text-[10px] text-muted-foreground line-clamp-1'>
+                {s.surfaceTreatment.split('(')[0]}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PaletteConfig() {
+  const { palette, setPalette, systemPalettes } = useTheme()
+  return (
+    <div>
+      <SectionTitle
+        title='Paleta de Color de la App'
+        showReset={palette !== 'aurora'}
+        onReset={() => setPalette('aurora')}
+        resetAriaLabel='Restablecer paleta a Aurora Boreal'
+      />
+      <div className='grid grid-cols-4 gap-1.5 pt-1'>
+        {systemPalettes.map((p) => {
+          const isSelected = palette === p.id
+          return (
+            <button
+              key={p.id}
+              type='button'
+              onClick={() => setPalette(p.id)}
+              className={cn(
+                'group relative flex flex-col items-center gap-1 p-1.5 rounded-lg border text-center transition-all',
+                isSelected
+                  ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                  : 'border-border/70 hover:border-primary/50 hover:bg-muted/30'
+              )}
+              title={`${p.name} (${p.title})`}
+            >
+              <div
+                className='h-4 w-4 rounded-full shadow-2xs border border-black/10 shrink-0'
+                style={{ backgroundColor: p.primaryHex }}
+              />
+              <span className='text-[9.5px] font-medium text-foreground truncate w-full'>
+                {p.name.split(' ')[0]}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

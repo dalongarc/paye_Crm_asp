@@ -685,6 +685,13 @@ export interface components {
         AuthConfigResponse: {
             demoSandboxEnabled: boolean;
         };
+        ClienteDepartamentoDto: {
+            id: string;
+            nombre: string;
+            telefono?: null | string;
+            personaContacto?: null | string;
+            email?: null | string;
+        };
         ClienteDto: {
             /** Format: uuid */
             id: string;
@@ -698,6 +705,8 @@ export interface components {
             ciudad: string;
             provincia: string;
             activo: boolean;
+            esBorrador?: boolean;
+            departamentos?: null | components["schemas"]["ClienteDepartamentoDto"][];
             notas: null | string;
             /** Format: uint32 */
             rowVersion: number | string;
@@ -722,7 +731,7 @@ export interface components {
         CreateClienteRequest: {
             nombreFiscal: string;
             nombreComercial?: null | string;
-            cifNif: string;
+            cifNif?: null | string;
             email?: null | string;
             telefono?: null | string;
             direccion?: null | string;
@@ -730,6 +739,8 @@ export interface components {
             ciudad?: null | string;
             provincia?: null | string;
             activo?: boolean;
+            esBorrador?: null | boolean;
+            departamentos?: null | components["schemas"]["ClienteDepartamentoDto"][];
             notas?: null | string;
         };
         LoginApiRequest: {
@@ -754,7 +765,7 @@ export interface components {
         UpdateClienteRequest: {
             nombreFiscal: string;
             nombreComercial?: null | string;
-            cifNif: string;
+            cifNif?: null | string;
             email?: null | string;
             telefono?: null | string;
             direccion?: null | string;
@@ -762,6 +773,8 @@ export interface components {
             ciudad?: null | string;
             provincia?: null | string;
             activo?: boolean;
+            esBorrador?: null | boolean;
+            departamentos?: null | components["schemas"]["ClienteDepartamentoDto"][];
             notas?: null | string;
             /** Format: uint32 */
             rowVersion: number | string;

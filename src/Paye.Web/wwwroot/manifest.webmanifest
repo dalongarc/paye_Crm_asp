@@ -1,25 +1,59 @@
 {
-  "name": "Payé POS",
-  "short_name": "Payé",
-  "description": "Sistema de Gestión Comercial y Facturación para Comercios",
-  "start_url": "/sign-in",
+  "id": "/",
+  "name": "Payé CRM — Gestión Comercial y Facturación",
+  "short_name": "Payé CRM",
+  "description": "Sistema de Gestión Comercial, Clientes (CRM) y Facturación VERI*FACTU para Comercios",
+  "lang": "es-ES",
+  "dir": "ltr",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#09090b",
-  "theme_color": "#18181b",
+  "theme_color": "#09090b",
   "orientation": "any",
+  "categories": ["business", "finance", "productivity"],
   "icons": [
     {
-      "src": "/images/favicon.png",
+      "src": "/images/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/shadcn-admin.png",
+      "src": "/images/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/images/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Panel Principal",
+      "short_name": "Inicio",
+      "description": "Abrir el panel de control de Payé CRM",
+      "url": "/",
+      "icons": [{ "src": "/images/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Clientes (CRM)",
+      "short_name": "Clientes",
+      "description": "Gestión de cartera de clientes y fichas fiscales",
+      "url": "/clientes",
+      "icons": [{ "src": "/images/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Facturación VERI*FACTU",
+      "short_name": "Facturas",
+      "description": "Emisión de facturas y presupuestos",
+      "url": "/facturacion",
+      "icons": [{ "src": "/images/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

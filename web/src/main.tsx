@@ -86,6 +86,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+// Aplicar inmediatamente el estilo y la paleta almacenados en localStorage antes del primer render
+try {
+  const savedStyle = localStorage.getItem('paye_active_style') || 'aurora'
+  const savedPalette = localStorage.getItem('paye_active_palette') || 'aurora'
+  document.documentElement.setAttribute('data-style', savedStyle)
+  document.documentElement.setAttribute('data-palette', savedPalette)
+} catch {
+  // Ignorar errores en entornos sin localStorage
+}
+
 // Render the app
 const rootElement = document.getElementById('root')!
 if (!rootElement.innerHTML) {
@@ -103,4 +113,12 @@ if (!rootElement.innerHTML) {
       </QueryClientProvider>
     </StrictMode>
   )
+}
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // Fallo silencioso si el navegador bloquea Service Workers en el entorno actual
+    })
+  })
 }

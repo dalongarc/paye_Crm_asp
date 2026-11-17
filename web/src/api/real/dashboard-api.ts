@@ -1,97 +1,122 @@
 import type { IDashboardApi } from '../interfaces'
-import type { DashboardSummary } from '../types'
+import type { DashboardSummary, DashboardFacturaReciente } from '../types'
 
-const SAMPLE_DASHBOARD_DATA: DashboardSummary = {
-  periodo: 'Noviembre 2026',
+interface StoredInvoice {
+  id: string
+  numero: string
+  cliente: string
+  fecha: string
+  total: number
+  baseImponible: number
+  iva: number
+  estado: 'emitida' | 'cobrada' | 'borrador' | 'rectificativa'
+  lineas?: { concepto: string }[]
+}
+
+interface StoredBillingState {
+  facturas?: StoredInvoice[]
+}
+
+const STORAGE_KEY = 'paye_pos_billing_store_v1'
+
+const EMPTY_DASHBOARD_DATA: DashboardSummary = {
+  periodo: 'Mes actual',
   kpis: {
-    totalFacturadoMes: 8450.0,
-    facturadoVariacionPorcentaje: 14.2,
-    baseImponibleMes: 6983.47,
-    ivaMes: 1466.53,
-    pendienteCobro: 2150.0,
-    facturasPendientesCount: 3,
-    clientesActivos: 24,
-    clientesNuevosMes: 3,
-    efectividadCobroPorcentaje: 92.5,
-    diasPromedioCobro: 12,
+    totalFacturadoMes: 0,
+    facturadoVariacionPorcentaje: 0,
+    baseImponibleMes: 0,
+    ivaMes: 0,
+    pendienteCobro: 0,
+    facturasPendientesCount: 0,
+    clientesActivos: 0,
+    clientesNuevosMes: 0,
+    efectividadCobroPorcentaje: 100,
+    diasPromedioCobro: 0,
   },
   evolucion: [
-    { mes: 'Jun', base: 4800, total: 5808 },
-    { mes: 'Jul', base: 5400, total: 6534 },
-    { mes: 'Ago', base: 4100, total: 4961 },
-    { mes: 'Sep', base: 6200, total: 7502 },
-    { mes: 'Oct', base: 6100, total: 7381 },
-    { mes: 'Nov', base: 6983.47, total: 8450 },
+    { mes: 'Ene', base: 0, total: 0 },
+    { mes: 'Feb', base: 0, total: 0 },
+    { mes: 'Mar', base: 0, total: 0 },
+    { mes: 'Abr', base: 0, total: 0 },
+    { mes: 'May', base: 0, total: 0 },
+    { mes: 'Jun', base: 0, total: 0 },
   ],
-  ultimasFacturas: [
-    {
-      id: 'fac-42',
-      numero: 'FAC-2026-042',
-      clienteNombre: 'Informática Norte S.L.',
-      servicio: 'Desarrollo a medida',
-      importe: 1850.0,
-      estado: 'cobrada',
-      fecha: 'Hoy, 11:30',
-    },
-    {
-      id: 'fac-41',
-      numero: 'FAC-2026-041',
-      clienteNombre: 'Estudio Creativo Web',
-      servicio: 'Mantenimiento WP & Hosting',
-      importe: 450.0,
-      estado: 'pendiente',
-      fecha: 'Ayer, 17:15',
-    },
-    {
-      id: 'fac-40',
-      numero: 'FAC-2026-040',
-      clienteNombre: 'Grupo Logístico Sur',
-      servicio: 'Infraestructura VPS Coolify',
-      importe: 1200.0,
-      estado: 'cobrada',
-      fecha: '3 Nov, 09:20',
-    },
-    {
-      id: 'fac-39',
-      numero: 'FAC-2026-039',
-      clienteNombre: 'Clínica Dental Alameda',
-      servicio: 'Bolsa de horas soporte',
-      importe: 350.0,
-      estado: 'pendiente',
-      fecha: '2 Nov, 14:05',
-    },
-    {
-      id: 'fac-38',
-      numero: 'FAC-2026-038',
-      clienteNombre: 'Restaurante El Puerto',
-      servicio: 'TPV Payé y Carta QR',
-      importe: 600.0,
-      estado: 'vencida',
-      fecha: '1 Nov, 18:40',
-    },
-  ],
-  servicios: [
-    { nombre: 'Desarrollo a medida', clientesCount: 10, porcentaje: 42 },
-    { nombre: 'WordPress & Hosting', clientesCount: 7, porcentaje: 29 },
-    { nombre: 'VPS, Cloud & Coolify', clientesCount: 4, porcentaje: 17 },
-    { nombre: 'Equipos & Asesoría', clientesCount: 3, porcentaje: 12 },
-  ],
-  proximosVencimientos: [
-    {
-      id: 'fac-41',
-      numero: 'FAC-2026-041',
-      clienteNombre: 'Estudio Creativo Web',
-      importe: 450.0,
-      diasRestantes: 3,
-    },
-    {
-      id: 'fac-39',
-      numero: 'FAC-2026-039',
-      clienteNombre: 'Consultoría Gómez',
-      importe: 850.0,
-      diasRestantes: 5,
-    },
-  ],
+  ultimasFacturas: [],
+  servicios: [],
+  proximosVencimientos: [],
+}
+
+function computeSummaryFromStore(): DashboardSummary {
+  if (typeof window === 'undefined') return EMPTY_DASHBOARD_DATA
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return EMPTY_DASHBOARD_DATA
+
+    const parsed = JSON.parse(raw) as StoredBillingState
+    const facturas = Array.isArray(parsed.facturas) ? parsed.facturas : []
+
+    if (facturas.length === 0) {
+      return EMPTY_DASHBOARD_DATA
+    }
+
+    const validInvoices = facturas.filter((f) => f.estado !== 'borrador')
+    const totalFacturado = validInvoices.reduce((acc, f) => acc + f.total, 0)
+    const baseTotal = validInvoices.reduce((acc, f) => acc + f.baseImponible, 0)
+    const ivaTotal = validInvoices.reduce((acc, f) => acc + f.iva, 0)
+
+    const pendingInvoices = validInvoices.filter((f) => f.estado === 'emitida')
+    const pendienteCobro = pendingInvoices.reduce((acc, f) => acc + f.total, 0)
+
+    const clientSet = new Set(validInvoices.map((f) => f.cliente).filter(Boolean))
+
+    const ultimasFacturas: DashboardFacturaReciente[] = validInvoices
+      .slice(-5)
+      .reverse()
+      .map((f) => ({
+        id: f.id,
+        numero: f.numero,
+        clienteNombre: f.cliente,
+        servicio: f.lineas?.[0]?.concepto ?? 'Factura comercial',
+        importe: f.total,
+        estado: (f.estado === 'cobrada' ? 'cobrada' : 'pendiente') as
+          | 'cobrada'
+          | 'pendiente'
+          | 'vencida',
+        fecha: f.fecha,
+      }))
+
+    return {
+      periodo: 'Ejercicio actual',
+      kpis: {
+        totalFacturadoMes: Math.round(totalFacturado * 100) / 100,
+        facturadoVariacionPorcentaje: 0,
+        baseImponibleMes: Math.round(baseTotal * 100) / 100,
+        ivaMes: Math.round(ivaTotal * 100) / 100,
+        pendienteCobro: Math.round(pendienteCobro * 100) / 100,
+        facturasPendientesCount: pendingInvoices.length,
+        clientesActivos: clientSet.size,
+        clientesNuevosMes: clientSet.size,
+        efectividadCobroPorcentaje:
+          validInvoices.length > 0
+            ? Math.round(
+                ((validInvoices.length - pendingInvoices.length) /
+                  validInvoices.length) *
+                  100
+              )
+            : 100,
+        diasPromedioCobro: 0,
+      },
+      evolucion: [
+        { mes: 'Mes actual', base: baseTotal, total: totalFacturado },
+      ],
+      ultimasFacturas,
+      servicios: [],
+      proximosVencimientos: [],
+    }
+  } catch {
+    return EMPTY_DASHBOARD_DATA
+  }
 }
 
 export class RealDashboardApi implements IDashboardApi {
@@ -109,9 +134,9 @@ export class RealDashboardApi implements IDashboardApi {
         return (await response.json()) as DashboardSummary
       }
     } catch {
-      // Si el endpoint aún no existe o hay error de red, cae al fallback de datos de ejemplo
+      // Si el endpoint aún no existe o hay error de red, calculamos con datos reales locales
     }
 
-    return SAMPLE_DASHBOARD_DATA
+    return computeSummaryFromStore()
   }
 }

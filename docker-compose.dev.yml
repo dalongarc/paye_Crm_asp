@@ -1,24 +1,57 @@
-# Docker Compose para entorno de desarrollo local (PostgreSQL 17)
-# Uso: docker compose -f docker-compose.dev.yml up -d
+# Docker Compose para entorno de desarrollo local (PostgreSQL 17 + Paye.Web)
+# Uso: docker compose -f docker-compose.dev.yml up -d --build
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: paye-postgres
+    container_name: paye-crm-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: paye_app
       POSTGRES_PASSWORD: paye_secure_dev_pass_2026
-      POSTGRES_DB: paye_local
+      POSTGRES_DB: paye_crm_asp
     ports:
-      - "127.0.0.1:5434:5432"
+      - "127.0.0.1:5435:5432"
     volumes:
-      - paye_pgdata_dev:/var/lib/postgresql/data
+      - paye_crm_pgdata_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paye_app -d paye_local"]
+      test: ["CMD-SHELL", "pg_isready -U paye_app -d paye_crm_asp"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paye-crm-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: https://+:5001;http://+:5000;http://+:8080
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetcore-https.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: paye-local-dev-cert
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=paye_crm_asp;Username=paye_app;Password=paye_secure_dev_pass_2026
+      ClientSettings__BusinessName: "Paye CRM - Gestion Comercial"
+      Security__DataProtectionKeysPath: /var/lib/paye/keys
+      Security__PrivateUploadsPath: /var/lib/paye/private-uploads
+      Auth__LocalAutoLogin: "false"
+      Auth__AllowInsecureLocalCookies: "true"
+    volumes:
+      - paye_crm_keys_dev:/var/lib/paye/keys
+      - paye_crm_uploads_dev:/var/lib/paye/private-uploads
+      - ./storage/certs:/https:ro
+      - ./src/Paye.Web/wwwroot:/app/wwwroot:ro
+
 volumes:
-  paye_pgdata_dev:
-    name: paye_pgdata_dev
+  paye_crm_pgdata_dev:
+    name: paye_crm_pgdata_dev
+  paye_crm_keys_dev:
+    name: paye_crm_keys_dev
+  paye_crm_uploads_dev:
+    name: paye_crm_uploads_dev

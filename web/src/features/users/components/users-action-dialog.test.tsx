@@ -6,17 +6,17 @@ import { type User } from '../data/schema'
 import { UsersActionDialog } from './users-action-dialog'
 
 const VALIDATION_MESSAGES = {
-  firstName: 'First Name is required.',
-  lastName: 'Last Name is required.',
-  username: 'Username is required.',
-  phoneNumber: 'Phone number is required.',
-  email: 'Email is required.',
-  role: 'Role is required.',
-  password: 'Password is required.',
-  passwordMismatch: "Passwords don't match.",
-  passwordLength: 'Password must be at least 8 characters long.',
-  passwordNumber: 'Password must contain at least one number.',
-  passwordLowercase: 'Password must contain at least one lowercase letter.',
+  firstName: 'El nombre es obligatorio.',
+  lastName: 'Los apellidos son obligatorios.',
+  username: 'El nombre de usuario es obligatorio.',
+  phoneNumber: 'El teléfono es obligatorio.',
+  email: 'El correo electrónico es obligatorio.',
+  role: 'El rol es obligatorio.',
+  password: 'La contraseña es obligatoria.',
+  passwordMismatch: 'Las contraseñas no coinciden.',
+  passwordLength: 'La contraseña debe tener al menos 8 caracteres.',
+  passwordNumber: 'La contraseña debe contener al menos un número.',
+  passwordLowercase: 'La contraseña debe contener al menos una letra minúscula.',
 } as const
 
 const MOCK_USER: User = {
@@ -27,7 +27,7 @@ const MOCK_USER: User = {
   email: 'alex@smith.com',
   phoneNumber: '+19999999999',
   status: 'active',
-  role: 'superadmin',
+  role: 'admin',
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-02-02'),
 }
@@ -45,10 +45,10 @@ describe('UsersActionDialog', () => {
 
       const title = getByRole('heading', {
         level: 2,
-        name: /Add New User/i,
+        name: /(Añadir Nuevo Usuario|Add New User)/i,
       })
       const description = getByText(
-        /Create new user here. Click save when you're done./i
+        /(Introduce los datos del nuevo usuario|Create new user here)/i
       )
 
       await expect.element(title).toBeInTheDocument()
@@ -60,7 +60,7 @@ describe('UsersActionDialog', () => {
         <UsersActionDialog open onOpenChange={vi.fn()} />
       )
 
-      const submitButton = getByRole('button', { name: /Save Changes/i })
+      const submitButton = getByRole('button', { name: /(Guardar cambios|Save Changes)/i })
       await userEvent.click(submitButton)
 
       await expect
@@ -79,22 +79,19 @@ describe('UsersActionDialog', () => {
         .element(getByText(VALIDATION_MESSAGES.email))
         .toBeInTheDocument()
       await expect
-        .element(getByText(VALIDATION_MESSAGES.role))
-        .toBeInTheDocument()
-      await expect
         .element(getByText(VALIDATION_MESSAGES.password))
         .toBeInTheDocument()
     })
 
     it('keeps confirm password disabled until password field is touched', async () => {
-      const { getByRole } = await render(
+      const screen = await render(
         <UsersActionDialog open onOpenChange={vi.fn()} />
       )
 
-      const password = getByRole('textbox', { name: /^Password$/i })
-      const confirmPassword = getByRole('textbox', {
-        name: /Confirm Password/i,
-      })
+      const password = screen.getByLabelText(/^(Contraseña|Password)$/i)
+      const confirmPassword = screen.getByLabelText(
+        /^(Confirmar contraseña|Confirm Password)$/i
+      )
       await expect.element(confirmPassword).toBeDisabled()
 
       await userEvent.type(password, 'a')
@@ -102,53 +99,53 @@ describe('UsersActionDialog', () => {
     })
 
     it('shows password validation messages when password is invalid', async () => {
-      const { getByRole, getByText } = await render(
+      const screen = await render(
         <UsersActionDialog open onOpenChange={vi.fn()} />
       )
 
-      const password = getByRole('textbox', { name: /^Password$/i })
-      const confirmPassword = getByRole('textbox', {
-        name: /Confirm Password/i,
-      })
+      const password = screen.getByLabelText(/^(Contraseña|Password)$/i)
+      const confirmPassword = screen.getByLabelText(
+        /^(Confirmar contraseña|Confirm Password)$/i
+      )
       await userEvent.type(password, 'a')
       await userEvent.type(confirmPassword, 'b')
-      const submitButton = getByRole('button', { name: /Save Changes/i })
+      const submitButton = screen.getByRole('button', { name: /(Guardar cambios|Save Changes)/i })
 
       await userEvent.click(submitButton)
 
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordMismatch))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordMismatch))
         .toBeInTheDocument()
 
       await userEvent.fill(password, 'short')
 
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordLength))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordLength))
         .toBeInTheDocument()
 
       await userEvent.fill(password, 'ONLYUPPERCASE')
 
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordLowercase))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordLowercase))
         .toBeInTheDocument()
 
       await userEvent.fill(password, 'onlylowercase')
 
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordNumber))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordNumber))
         .toBeInTheDocument()
 
       await userEvent.fill(password, 'S3cur3P@ssw0rd')
       await userEvent.fill(confirmPassword, 'S3cur3P@ssw0rd')
 
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordMismatch))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordMismatch))
         .not.toBeInTheDocument()
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordLength))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordLength))
         .not.toBeInTheDocument()
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordNumber))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordNumber))
         .not.toBeInTheDocument()
     })
 
@@ -163,7 +160,7 @@ describe('UsersActionDialog', () => {
 
       await fillPasswords(userEvent, screen, 'S3cur3P@ssw0rd', 'S3cur3P@ssw0rd')
 
-      const submitButton = screen.getByRole('button', { name: /Save Changes/i })
+      const submitButton = screen.getByRole('button', { name: /(Guardar cambios|Save Changes)/i })
       await userEvent.click(submitButton)
 
       expect(onOpenChange).toHaveBeenCalledOnce()
@@ -192,10 +189,10 @@ describe('UsersActionDialog', () => {
 
       const title = getByRole('heading', {
         level: 2,
-        name: /Edit User/i,
+        name: /(Editar Usuario|Edit User)/i,
       })
       const description = getByText(
-        /Update the user here\. Click save when you're done\./i
+        /(Modifica los datos del usuario|Update the user here)/i
       )
 
       await expect.element(title).toBeInTheDocument()
@@ -212,7 +209,7 @@ describe('UsersActionDialog', () => {
         />
       )
 
-      const submitButton = screen.getByRole('button', { name: /Save Changes/i })
+      const submitButton = screen.getByRole('button', { name: /(Guardar cambios|Save Changes)/i })
       await userEvent.click(submitButton)
 
       expect(onOpenChange).toHaveBeenCalledOnce()
@@ -233,23 +230,23 @@ describe('UsersActionDialog', () => {
     })
 
     it('requires confirm password when password is changed', async () => {
-      const { getByRole, getByText } = await render(
+      const screen = await render(
         <UsersActionDialog open onOpenChange={vi.fn()} currentRow={MOCK_USER} />
       )
 
-      const password = getByRole('textbox', { name: /^Password$/i })
-      const confirmPassword = getByRole('textbox', {
-        name: /Confirm Password/i,
-      })
+      const password = screen.getByLabelText(/^(Contraseña|Password)$/i)
+      const confirmPassword = screen.getByLabelText(
+        /^(Confirmar contraseña|Confirm Password)$/i
+      )
 
       await userEvent.fill(password, 'S3cur3P@ssw0rd')
       await expect.element(confirmPassword).toBeEnabled()
 
-      const submitButton = getByRole('button', { name: /Save Changes/i })
+      const submitButton = screen.getByRole('button', { name: /(Guardar cambios|Save Changes)/i })
       await userEvent.click(submitButton)
 
       await expect
-        .element(getByText(VALIDATION_MESSAGES.passwordMismatch))
+        .element(screen.getByText(VALIDATION_MESSAGES.passwordMismatch))
         .toBeInTheDocument()
     })
 
@@ -267,7 +264,7 @@ describe('UsersActionDialog', () => {
       const EDIT_SUCCESS_PASSWORD = 'S3cur3P@ssw0rd'
 
       await userEvent.fill(
-        screen.getByLabelText(/first name/i),
+        screen.getByLabelText(/^(Nombre|first name)$/i),
         EDIT_SUCCESS_FIRST_NAME
       )
       await fillPasswords(
@@ -277,7 +274,7 @@ describe('UsersActionDialog', () => {
         EDIT_SUCCESS_PASSWORD
       )
 
-      const submitButton = screen.getByRole('button', { name: /Save Changes/i })
+      const submitButton = screen.getByRole('button', { name: /(Guardar cambios|Save Changes)/i })
       await userEvent.click(submitButton)
 
       expect(onOpenChange).toHaveBeenCalledOnce()
@@ -312,11 +309,11 @@ async function fillRequiredProfileFields(
   }
 ) {
   const entries = [
-    [/first name/i, overrides?.firstName ?? 'John'],
-    [/last name/i, overrides?.lastName ?? 'Doe'],
-    [/username/i, overrides?.username ?? 'john_doe'],
-    [/^email$/i, overrides?.email ?? 'a@b.co'],
-    [/phone number/i, overrides?.phoneNumber ?? '+19999999999'],
+    [/^(Nombre|first name)$/i, overrides?.firstName ?? 'John'],
+    [/(Apellidos|last name)/i, overrides?.lastName ?? 'Doe'],
+    [/^(Nombre de usuario|username)$/i, overrides?.username ?? 'john_doe'],
+    [/^(Correo electrónico|email)$/i, overrides?.email ?? 'a@b.co'],
+    [/(Teléfono|phone number)/i, overrides?.phoneNumber ?? '+19999999999'],
   ] as const
 
   for (const [label, value] of entries) {
@@ -325,10 +322,10 @@ async function fillRequiredProfileFields(
     await user.fill(el, value)
   }
 
-  const roleSelect = screen.getByRole('combobox', { name: /Role/i })
+  const roleSelect = screen.getByRole('combobox', { name: /(Rol|Role)/i })
   await user.click(roleSelect)
   await user.click(
-    screen.getByRole('option', { name: overrides?.roleOption ?? 'Superadmin' })
+    screen.getByRole('option', { name: overrides?.roleOption ?? /(Administrador|Admin)/i })
   )
 }
 
@@ -338,8 +335,8 @@ async function fillPasswords(
   a: string,
   b: string
 ) {
-  const password = screen.getByLabelText(/^Password$/i)
-  const confirmPassword = screen.getByLabelText(/^Confirm Password$/i)
+  const password = screen.getByLabelText(/^(Contraseña|Password)$/i)
+  const confirmPassword = screen.getByLabelText(/^(Confirmar contraseña|Confirm Password)$/i)
   await user.fill(password, a)
   await user.fill(confirmPassword, b)
 }

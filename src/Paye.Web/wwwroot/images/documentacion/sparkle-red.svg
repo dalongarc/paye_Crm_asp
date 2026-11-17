@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <!-- Fondo orgánico blanco recortado tipo collage (igual al PDF página 2) -->
+  <path
+    d="M89 6C106 5 118 14 133 17C148 20 164 31 170 46C176 61 173 78 174 94C175 110 171 128 160 142C149 156 132 167 115 172C98 177 79 175 61 170C43 165 25 157 15 141C5 125 4 104 7 85C10 66 17 47 31 33C45 19 72 7 89 6Z"
+    fill="#FFFFFF"
+  />
+  <!-- Asterisco de 8 brazos con trazo orgánico artesanal en rojo corporativo #DF1216 -->
+  <g stroke="#DF1216" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Vertical -->
+    <path d="M91 22 C89 58, 88 122, 87 158" stroke-width="13" />
+    <path d="M93 26 C91 65, 90 118, 89 154" stroke-width="9" stroke-dasharray="18 4" />
+    <!-- Horizontal -->
+    <path d="M22 93 C60 91, 120 88, 158 86" stroke-width="13" />
+    <!-- Diagonal 1 (\) -->
+    <path d="M40 38 C68 66, 114 112, 141 139" stroke-width="12" />
+    <!-- Diagonal 2 (/) -->
+    <path d="M142 36 C113 65, 66 114, 38 142" stroke-width="12" />
+    <!-- Textura de pincel seco en los extremos -->
+    <circle cx="91" cy="20" r="4" fill="#DF1216" stroke="none" />
+    <circle cx="87" cy="160" r="3.5" fill="#DF1216" stroke="none" />
+    <circle cx="20" cy="93" r="3.5" fill="#DF1216" stroke="none" />
+    <circle cx="160" cy="86" r="4" fill="#DF1216" stroke="none" />
+    <circle cx="38" cy="36" r="3.5" fill="#DF1216" stroke="none" />
+    <circle cx="143" cy="141" r="3.5" fill="#DF1216" stroke="none" />
+    <circle cx="144" cy="34" r="3.5" fill="#DF1216" stroke="none" />
+    <circle cx="36" cy="144" r="3.5" fill="#DF1216" stroke="none" />
+  </g>
+</svg>

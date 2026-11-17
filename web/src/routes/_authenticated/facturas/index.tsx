@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import z from 'zod'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Card } from '@/components/ui/card'
 import { Header } from '@/components/layout/header'
@@ -34,6 +35,7 @@ import {
   billingActions,
   getQuarterFromDate,
   getYearFromDate,
+  getNextInvoiceNumber,
   type InvoiceItem,
   type LineaFactura,
   type QuarterId,
@@ -44,7 +46,12 @@ import {
 } from '@/lib/invoice-pdf-export'
 import { useClientesQuery } from '@/hooks/use-clientes'
 
+const facturasSearchSchema = z.object({
+  clienteId: z.string().optional().catch(undefined),
+})
+
 export const Route = createFileRoute('/_authenticated/facturas/')({
+  validateSearch: facturasSearchSchema,
   component: FacturasPage,
 })
 
@@ -57,10 +64,11 @@ const QUARTERS: { id: QuarterId | 'todas'; label: string; desc: string }[] = [
 ]
 
 function FacturasPage() {
+  const { clienteId: urlClienteId } = Route.useSearch()
   const { company, taxes, template, verifactu, catalog, facturas, gastos } =
     useBillingStore()
 
-  const { data: clientesData } = useClientesQuery({ page: 1, pageSize: 100 })
+  const { data: clientesData } = useClientesQuery({ page: 1, pageSize: 200 })
   const dbClientes = clientesData?.items ?? []
 
   const [selectedQuarter, setSelectedQuarter] = useState<QuarterId | 'todas'>('4T')
@@ -73,9 +81,16 @@ function FacturasPage() {
   // Estado del Modo Edición Visual en Vivo (WYSIWYG sobre la propia plantilla)
   const [isEditingTemplate, setIsEditingTemplate] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [draftNumero, setDraftNumero] = useState('F2026-00128')
-  const [draftFecha, setDraftFecha] = useState('2026-11-06')
-  const [draftVencimiento, setDraftVencimiento] = useState('2026-12-06')
+  const [draftClienteId, setDraftClienteId] = useState<string | null>(null)
+  const [draftNumero, setDraftNumero] = useState(() =>
+    getNextInvoiceNumber(facturas, new Date().getFullYear(), 'F')
+  )
+  const [draftFecha, setDraftFecha] = useState(() => new Date().toISOString().split('T')[0])
+  const [draftVencimiento, setDraftVencimiento] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 30)
+    return d.toISOString().split('T')[0]
+  })
   const [draftCliente, setDraftCliente] = useState('')
   const [draftCifNif, setDraftCifNif] = useState('')
   const [draftDireccion, setDraftDireccion] = useState('')
@@ -214,7 +229,7 @@ function FacturasPage() {
 
   // Abrir la Plantilla Editable para Nueva Factura
   const handleStartNuevaFactura = () => {
-    const nextSeq = facturas.length + 124
+    const nextNum = getNextInvoiceNumber(facturas, new Date().getFullYear(), 'F')
     const defaultIva =
       taxes.find((t) => t.kind === 'iva' && t.isDefault)?.percentage ?? 21
     const defaultIrpf =
@@ -222,10 +237,16 @@ function FacturasPage() {
     const defaultRecargo =
       taxes.find((t) => t.kind === 'recargo' && t.isDefault)?.percentage ?? 0
 
+    const todayStr = new Date().toISOString().split('T')[0]
+    const vencDate = new Date()
+    vencDate.setDate(vencDate.getDate() + 30)
+    const vencStr = vencDate.toISOString().split('T')[0]
+
     setEditingId(null)
-    setDraftNumero(`F2026-${String(nextSeq).padStart(5, '0')}`)
-    setDraftFecha('2026-11-06')
-    setDraftVencimiento('2026-12-06')
+    setDraftClienteId(null)
+    setDraftNumero(nextNum)
+    setDraftFecha(todayStr)
+    setDraftVencimiento(vencStr)
     setDraftCliente('')
     setDraftCifNif('')
     setDraftDireccion('')
@@ -250,6 +271,7 @@ function FacturasPage() {
   // Editar factura existente en la plantilla visual
   const handleEditFactura = (factura: InvoiceItem) => {
     setEditingId(factura.id)
+    setDraftClienteId(factura.clienteId ?? null)
     setDraftNumero(factura.numero)
     setDraftFecha(factura.fecha)
     setDraftVencimiento(factura.fechaVencimiento)
@@ -269,29 +291,45 @@ function FacturasPage() {
     setIsEditingTemplate(true)
   }
 
-  // Autocompletar cliente desde el selector
+  // Autocompletar cliente desde el selector de la BD
   const handleSelectExistingCustomer = (val: string) => {
-    if (!val) return
+    if (!val) {
+      setDraftClienteId(null)
+      return
+    }
     const fromDb = dbClientes.find((c) => c.id === val)
     if (fromDb) {
+      setDraftClienteId(fromDb.id)
       setDraftCliente(fromDb.nombreFiscal)
       setDraftCifNif(fromDb.cifNif)
       setDraftDireccion(
-        [fromDb.direccion, fromDb.codigoPostal, fromDb.ciudad]
+        [fromDb.direccion, fromDb.codigoPostal, fromDb.ciudad, fromDb.provincia]
           .filter(Boolean)
-          .join(', ') || 'Madrid'
+          .join(', ') || 'Dirección fiscal registrada'
       )
       setDraftEmail(fromDb.email || '')
       return
     }
-    const fromInvoice = facturas.find((f) => f.cifNif === val)
+    const fromInvoice = facturas.find((f) => f.cifNif === val || f.clienteId === val)
     if (fromInvoice) {
+      setDraftClienteId(fromInvoice.clienteId ?? null)
       setDraftCliente(fromInvoice.cliente)
       setDraftCifNif(fromInvoice.cifNif)
       setDraftDireccion(fromInvoice.direccion)
       setDraftEmail(fromInvoice.email)
     }
   }
+
+  // Pre-seleccionar cliente si viene en la URL (?clienteId=...)
+  useEffect(() => {
+    if (urlClienteId && dbClientes.length > 0) {
+      const target = dbClientes.find((c) => c.id === urlClienteId)
+      if (target) {
+        handleSelectExistingCustomer(target.id)
+        setIsEditingTemplate(true)
+      }
+    }
+  }, [urlClienteId, dbClientes])
 
   // Añadir línea libre a la plantilla
   const handleAddFreeLine = () => {
@@ -374,11 +412,12 @@ function FacturasPage() {
     const newInvoice: InvoiceItem = {
       id,
       numero: status === 'borrador' && !editingId ? `BORR-${draftNumero}` : draftNumero,
-      serie: 'F2026',
+      serie: 'F',
       fecha: draftFecha,
       trimestre: quarter,
       ejercicio: year,
       fechaVencimiento: draftVencimiento,
+      clienteId: draftClienteId ?? undefined,
       cliente: draftCliente.trim(),
       cifNif: draftCifNif.trim() || 'B00000000',
       direccion: draftDireccion.trim() || 'Dirección fiscal registrada',
@@ -863,27 +902,20 @@ function FacturasPage() {
                         <select
                           aria-label='Seleccionar cliente existente'
                           onChange={(e) => handleSelectExistingCustomer(e.target.value)}
-                          defaultValue=''
+                          value={draftClienteId ?? ''}
                           className='h-8 rounded-lg border border-input bg-background px-3 text-xs font-medium'
                           data-testid='select-cliente-factura'
                         >
                           <option value=''>
-                            Elegir cliente del directorio...
+                            {dbClientes.length === 0
+                              ? 'Sin clientes registrados en la BD (crea uno en Clientes o escribe abajo)'
+                              : 'Elegir cliente del directorio...'}
                           </option>
                           {dbClientes.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.nombreFiscal} ({c.cifNif})
                             </option>
                           ))}
-                          <option value='B98765432'>
-                            Acme Telecomunicaciones S.L. (B98765432)
-                          </option>
-                          <option value='E12345678'>
-                            Restaurante El Molino C.B. (E12345678)
-                          </option>
-                          <option value='A87654321'>
-                            Talleres Mecánicos Sur S.A. (A87654321)
-                          </option>
                         </select>
                       </div>
 

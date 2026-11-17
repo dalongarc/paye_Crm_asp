@@ -25,6 +25,11 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { ClienteFormDialog } from './components/cliente-form-dialog'
 import { ClienteDeleteDialog } from './components/cliente-delete-dialog'
+import { FacturaPreviewDialog } from './components/factura-preview-dialog'
+import { PresupuestoFormDialog } from './components/presupuesto-form-dialog'
+import { PresupuestoPreviewDialog } from './components/presupuesto-preview-dialog'
+import { useBillingStore, type InvoiceItem, type QuoteItem } from '@/lib/billing-store'
+import { useNavigate } from '@tanstack/react-router'
 import { useClientesQuery } from '@/hooks/use-clientes'
 import type { ClienteDto } from '@/api'
 import {
@@ -43,6 +48,7 @@ import {
   LayoutGrid,
   List,
   ShieldCheck,
+  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -71,12 +77,20 @@ function getAvatarColor(id: string): string {
 }
 
 export function Clientes() {
+  const navigate = useNavigate()
+  const billing = useBillingStore()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedCliente, setSelectedCliente] = useState<ClienteDto | null>(null)
   const [activeTab, setActiveTab] = useState<'fiscal' | 'facturas' | 'pedidos' | 'auditoria'>('fiscal')
   const [viewMode, setViewMode] = useState<'workstation' | 'table'>('workstation')
+
+  // Diálogos de previsualización y presupuestos
+  const [previewFactura, setPreviewFactura] = useState<InvoiceItem | null>(null)
+  const [previewPresupuesto, setPreviewPresupuesto] = useState<QuoteItem | null>(null)
+  const [presupuestoFormOpen, setPresupuestoFormOpen] = useState(false)
 
   const { data, isLoading, refetch } = useClientesQuery({
     searchTerm: searchTerm.trim() || undefined,
@@ -93,6 +107,63 @@ export function Clientes() {
     return clientes[0] || null
   }, [clientes, selectedCliente])
 
+  // Facturas reales asociadas al cliente activo
+  const clientFacturas = useMemo(() => {
+    if (!activeCliente) return []
+    const cId = activeCliente.id
+    const cNif = activeCliente.cifNif?.toLowerCase().trim()
+    const cNomFiscal = activeCliente.nombreFiscal?.toLowerCase().trim()
+    const cNomComercial = activeCliente.nombreComercial?.toLowerCase().trim()
+
+    return billing.facturas.filter((f) => {
+      if (f.clienteId && f.clienteId === cId) return true
+      if (cNif && f.cifNif?.toLowerCase().trim() === cNif) return true
+      const fCliente = f.cliente?.toLowerCase().trim()
+      if (cNomFiscal && fCliente === cNomFiscal) return true
+      if (cNomComercial && fCliente === cNomComercial) return true
+      return false
+    })
+  }, [billing.facturas, activeCliente])
+
+  // Presupuestos reales asociados al cliente activo
+  const clientPresupuestos = useMemo(() => {
+    if (!activeCliente) return []
+    const cId = activeCliente.id
+    const cNif = activeCliente.cifNif?.toLowerCase().trim()
+    const cNomFiscal = activeCliente.nombreFiscal?.toLowerCase().trim()
+    const cNomComercial = activeCliente.nombreComercial?.toLowerCase().trim()
+
+    return billing.presupuestos.filter((p) => {
+      if (p.clienteId && p.clienteId === cId) return true
+      if (cNif && p.cifNif?.toLowerCase().trim() === cNif) return true
+      const pCliente = p.cliente?.toLowerCase().trim()
+      if (cNomFiscal && pCliente === cNomFiscal) return true
+      if (cNomComercial && pCliente === cNomComercial) return true
+      return false
+    })
+  }, [billing.presupuestos, activeCliente])
+
+  // Métricas dinámicas calculadas exclusivamente sobre facturas reales
+  const metricasCliente = useMemo(() => {
+    const totalFacturado = clientFacturas.reduce((acc, f) => acc + (f.total || 0), 0)
+    const numDocs = clientFacturas.length
+    const hayPendiente = clientFacturas.some(
+      (f) => f.estado === 'emitida' || f.estado === 'borrador'
+    )
+
+    let estadoCobro = 'Sin facturas'
+    if (numDocs > 0) {
+      estadoCobro = hayPendiente ? 'Pendiente' : 'Al corriente'
+    }
+
+    return {
+      totalFacturado,
+      numDocs,
+      estadoCobro,
+      alCorriente: numDocs > 0 && !hayPendiente,
+    }
+  }, [clientFacturas])
+
   const handleOpenCreate = () => {
     setSelectedCliente(null)
     setFormDialogOpen(true)
@@ -108,8 +179,12 @@ export function Clientes() {
     setDeleteDialogOpen(true)
   }
 
-  const handleNuevaFacturaParaCliente = (nombre: string) => {
-    toast.success(`Iniciando factura borrador vinculada a ${nombre}`)
+  const handleNuevaFacturaParaCliente = (cliente: ClienteDto) => {
+    toast.success(`Iniciando factura vinculada a ${cliente.nombreComercial || cliente.nombreFiscal}`)
+    navigate({
+      to: '/facturas',
+      search: { clienteId: cliente.id },
+    })
   }
 
   return (
@@ -250,11 +325,27 @@ export function Clientes() {
                                 {initials}
                               </div>
                               <div className='min-w-0'>
-                                <p className='font-semibold text-[13px] text-foreground truncate leading-snug'>
-                                  {cliente.nombreFiscal}
-                                </p>
+                                <div className='flex items-center gap-1.5'>
+                                  <p className='font-semibold text-[13px] text-foreground truncate leading-snug'>
+                                    {cliente.nombreFiscal}
+                                  </p>
+                                  {(cliente.esBorrador || !cliente.cifNif) && (
+                                    <Badge
+                                      variant='outline'
+                                      className='border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[9px] px-1.5 py-0 h-4 shrink-0'
+                                    >
+                                      Borrador
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className='text-xs text-muted-foreground font-mono truncate mt-0.5'>
-                                  {cliente.cifNif}
+                                  {cliente.cifNif || 'Sin CIF/NIF (Borrador)'}
+                                  {cliente.departamentos && cliente.departamentos.length > 0 && (
+                                    <span className='font-sans ms-1.5 text-[11px] text-primary'>
+                                      · {cliente.departamentos.length}{' '}
+                                      {cliente.departamentos.length === 1 ? 'dpto.' : 'dptos.'}
+                                    </span>
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -324,6 +415,14 @@ export function Clientes() {
                             <h2 className='text-lg font-semibold tracking-tight text-foreground'>
                               {activeCliente.nombreFiscal}
                             </h2>
+                            {(activeCliente.esBorrador || !activeCliente.cifNif) && (
+                              <Badge
+                                variant='outline'
+                                className='border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium'
+                              >
+                                Borrador (Sin CIF/NIF)
+                              </Badge>
+                            )}
                             {activeCliente.activo ? (
                               <Badge
                                 variant='outline'
@@ -338,7 +437,7 @@ export function Clientes() {
                             )}
                           </div>
                           <p className='text-xs text-muted-foreground font-mono mt-0.5'>
-                            NIF/CIF: {activeCliente.cifNif}
+                            NIF/CIF: {activeCliente.cifNif || 'Pendiente (Borrador)'}
                             {activeCliente.nombreComercial && (
                               <span className='font-sans ms-2 text-foreground/80 font-medium'>
                                 · {activeCliente.nombreComercial}
@@ -362,7 +461,7 @@ export function Clientes() {
                         <Button
                           size='sm'
                           className='h-8 text-xs font-medium gap-1.5 shadow-2xs'
-                          onClick={() => handleNuevaFacturaParaCliente(activeCliente.nombreFiscal)}
+                          onClick={() => handleNuevaFacturaParaCliente(activeCliente)}
                         >
                           <Receipt className='h-3.5 w-3.5' />
                           <span>Emitir factura</span>
@@ -370,14 +469,18 @@ export function Clientes() {
                       </div>
                     </div>
 
-                    {/* Métricas con etiquetas legibles en sentence-case (typography.md) */}
+                    {/* Métricas con etiquetas legibles en sentence-case y valores dinámicos reales */}
                     <div className='grid grid-cols-3 divide-x divide-border/60 border-b border-border/60 bg-background px-2 py-3.5 text-center'>
                       <div className='px-3'>
                         <span className='text-xs text-muted-foreground font-medium block'>
-                          Facturación anual (2026)
+                          Facturación acumulada
                         </span>
                         <p className='text-base font-semibold font-mono text-foreground mt-0.5'>
-                          3.420,00 €
+                          {metricasCliente.totalFacturado.toLocaleString('es-ES', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          €
                         </p>
                       </div>
                       <div className='px-3'>
@@ -385,16 +488,31 @@ export function Clientes() {
                           Facturas emitidas
                         </span>
                         <p className='text-base font-semibold font-mono text-foreground mt-0.5'>
-                          4 documentos
+                          {metricasCliente.numDocs}{' '}
+                          {metricasCliente.numDocs === 1 ? 'documento' : 'documentos'}
                         </p>
                       </div>
                       <div className='px-3'>
                         <span className='text-xs text-muted-foreground font-medium block'>
                           Estado de cobro
                         </span>
-                        <p className='text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center justify-center gap-1'>
-                          <CheckCircle2 className='h-3.5 w-3.5' />
-                          Al corriente
+                        <p
+                          className={`text-xs font-semibold mt-1 inline-flex items-center justify-center gap-1 ${
+                            metricasCliente.numDocs === 0
+                              ? 'text-muted-foreground'
+                              : metricasCliente.alCorriente
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-amber-600 dark:text-amber-400'
+                          }`}
+                        >
+                          {metricasCliente.numDocs === 0 ? (
+                            <span>Sin documentos</span>
+                          ) : (
+                            <>
+                              <CheckCircle2 className='h-3.5 w-3.5' />
+                              <span>{metricasCliente.estadoCobro}</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -407,8 +525,16 @@ export function Clientes() {
                       >
                         {[
                           { id: 'fiscal', label: 'Datos fiscales', icon: Building2 },
-                          { id: 'facturas', label: 'Facturas y tickets', icon: Receipt },
-                          { id: 'pedidos', label: 'Presupuestos', icon: FileText },
+                          {
+                            id: 'facturas',
+                            label: `Facturas y tickets (${clientFacturas.length})`,
+                            icon: Receipt,
+                          },
+                          {
+                            id: 'pedidos',
+                            label: `Presupuestos (${clientPresupuestos.length})`,
+                            icon: FileText,
+                          },
                           { id: 'auditoria', label: 'Actividad', icon: ShieldCheck },
                         ].map((tab) => {
                           const Icon = tab.icon
@@ -447,7 +573,7 @@ export function Clientes() {
                                 {activeCliente.nombreFiscal}
                               </p>
                               <p className='font-mono text-xs text-muted-foreground'>
-                                NIF/CIF: {activeCliente.cifNif}
+                                NIF/CIF: {activeCliente.cifNif || 'Sin CIF/NIF (Cliente en borrador)'}
                               </p>
                               <p className='text-xs text-muted-foreground'>
                                 Régimen aplicable: IVA General (21%)
@@ -456,7 +582,7 @@ export function Clientes() {
 
                             <div className='p-4 rounded-xl border border-border/70 bg-muted/10 space-y-2'>
                               <span className='text-xs font-medium text-muted-foreground block'>
-                                Contacto comercial
+                                Contacto comercial principal
                               </span>
                               <div className='flex items-center gap-2 text-xs text-foreground'>
                                 <Mail className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
@@ -464,9 +590,69 @@ export function Clientes() {
                               </div>
                               <div className='flex items-center gap-2 text-xs text-foreground'>
                                 <Phone className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
-                                <span>{activeCliente.telefono || 'Sin teléfono registrado'}</span>
+                                <span>{activeCliente.telefono || 'Sin teléfono principal registrado'}</span>
                               </div>
                             </div>
+                          </div>
+
+                          {/* Departamentos y teléfonos adicionales */}
+                          <div className='p-4 rounded-xl border border-border/70 bg-muted/10 space-y-2.5 text-xs'>
+                            <div className='flex items-center justify-between gap-2'>
+                              <span className='text-xs font-medium text-muted-foreground flex items-center gap-1.5'>
+                                <Building2 className='h-3.5 w-3.5 text-muted-foreground' />
+                                Departamentos y teléfonos de contacto (
+                                {activeCliente.departamentos?.length ?? 0})
+                              </span>
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='sm'
+                                className='h-6 px-2 text-[11px] gap-1'
+                                onClick={() => handleOpenEdit(activeCliente)}
+                              >
+                                <Pencil className='h-3 w-3' />
+                                <span>Gestionar departamentos</span>
+                              </Button>
+                            </div>
+
+                            {activeCliente.departamentos &&
+                            activeCliente.departamentos.length > 0 ? (
+                              <div className='grid sm:grid-cols-2 gap-2.5 pt-1'>
+                                {activeCliente.departamentos.map((dpto) => (
+                                  <div
+                                    key={dpto.id}
+                                    className='rounded-lg border border-border/70 bg-background p-3 space-y-1'
+                                  >
+                                    <div className='flex items-center justify-between gap-2'>
+                                      <span className='font-semibold text-foreground text-xs'>
+                                        {dpto.nombre}
+                                      </span>
+                                      {dpto.personaContacto && (
+                                        <Badge variant='secondary' className='text-[10px]'>
+                                          {dpto.personaContacto}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {dpto.telefono && (
+                                      <div className='flex items-center gap-1.5 text-xs font-mono text-foreground/90'>
+                                        <Phone className='h-3 w-3 text-primary shrink-0' />
+                                        <span>{dpto.telefono}</span>
+                                      </div>
+                                    )}
+                                    {dpto.email && (
+                                      <div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
+                                        <Mail className='h-3 w-3 shrink-0' />
+                                        <span className='truncate'>{dpto.email}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className='text-muted-foreground text-xs'>
+                                No se han añadido departamentos específicos todavía. Puedes añadir múltiples departamentos y teléfonos desde «Editar ficha».
+                              </p>
+                            )}
                           </div>
 
                           <div className='p-4 rounded-xl border border-border/70 bg-muted/10 space-y-1.5 text-xs'>
@@ -503,50 +689,154 @@ export function Clientes() {
 
                       {activeTab === 'facturas' && (
                         <div className='space-y-3 text-xs'>
-                          <div className='border rounded-lg overflow-hidden'>
-                            <table className='w-full text-left'>
-                              <thead className='bg-muted/40 border-b text-muted-foreground font-medium'>
-                                <tr>
-                                  <th className='py-2 px-3'>Número</th>
-                                  <th className='py-2 px-3'>Fecha</th>
-                                  <th className='py-2 px-3 text-right'>Importe</th>
-                                  <th className='py-2 px-3 text-right'>Estado</th>
-                                </tr>
-                              </thead>
-                              <tbody className='divide-y'>
-                                <tr className='hover:bg-muted/20'>
-                                  <td className='py-2.5 px-3 font-mono font-medium'>F2026-00124</td>
-                                  <td className='py-2.5 px-3 text-muted-foreground'>05/11/2026</td>
-                                  <td className='py-2.5 px-3 text-right font-mono font-semibold'>1.512,50 €</td>
-                                  <td className='py-2.5 px-3 text-right'>
-                                    <Badge className='bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]'>
-                                      Cobrada
-                                    </Badge>
-                                  </td>
-                                </tr>
-                                <tr className='hover:bg-muted/20'>
-                                  <td className='py-2.5 px-3 font-mono font-medium'>F2026-00089</td>
-                                  <td className='py-2.5 px-3 text-muted-foreground'>12/10/2026</td>
-                                  <td className='py-2.5 px-3 text-right font-mono font-semibold'>1.907,50 €</td>
-                                  <td className='py-2.5 px-3 text-right'>
-                                    <Badge className='bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]'>
-                                      Cobrada
-                                    </Badge>
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
+                          {clientFacturas.length > 0 ? (
+                            <div className='border rounded-lg overflow-hidden'>
+                              <table className='w-full text-left'>
+                                <thead className='bg-muted/40 border-b text-muted-foreground font-medium'>
+                                  <tr>
+                                    <th className='py-2 px-3'>Número</th>
+                                    <th className='py-2 px-3'>Fecha</th>
+                                    <th className='py-2 px-3 text-right'>Importe</th>
+                                    <th className='py-2 px-3 text-center'>Estado</th>
+                                    <th className='py-2 px-3 text-right'>Acción</th>
+                                  </tr>
+                                </thead>
+                                <tbody className='divide-y'>
+                                  {clientFacturas.map((f) => (
+                                    <tr key={f.id} className='hover:bg-muted/20'>
+                                      <td className='py-2.5 px-3 font-mono font-medium'>{f.numero}</td>
+                                      <td className='py-2.5 px-3 text-muted-foreground'>{f.fecha}</td>
+                                      <td className='py-2.5 px-3 text-right font-mono font-semibold'>
+                                        {f.total.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                                      </td>
+                                      <td className='py-2.5 px-3 text-center'>
+                                        <Badge
+                                          className={
+                                            f.estado === 'cobrada'
+                                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]'
+                                              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[10px]'
+                                          }
+                                        >
+                                          {f.estado.charAt(0).toUpperCase() + f.estado.slice(1)}
+                                        </Badge>
+                                      </td>
+                                      <td className='py-2.5 px-3 text-right'>
+                                        <Button
+                                          size='sm'
+                                          variant='outline'
+                                          className='h-7 text-xs gap-1'
+                                          onClick={() => setPreviewFactura(f)}
+                                        >
+                                          <Eye className='h-3.5 w-3.5' />
+                                          <span>Previsualizar</span>
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className='p-6 text-center text-xs text-muted-foreground space-y-2 border border-dashed rounded-lg'>
+                              <Receipt className='h-8 w-8 mx-auto text-muted-foreground/50' />
+                              <p>No hay facturas emitidas para este cliente todavía.</p>
+                              <Button
+                                size='sm'
+                                variant='outline'
+                                className='text-xs h-7 mt-1 gap-1.5'
+                                onClick={() => handleNuevaFacturaParaCliente(activeCliente)}
+                              >
+                                <Receipt className='h-3.5 w-3.5' />
+                                <span>Emitir primera factura</span>
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
 
                       {activeTab === 'pedidos' && (
-                        <div className='p-6 text-center text-xs text-muted-foreground space-y-2 border border-dashed rounded-lg'>
-                          <FileText className='h-8 w-8 mx-auto text-muted-foreground/50' />
-                          <p>No hay presupuestos pendientes para este cliente.</p>
-                          <Button size='sm' variant='outline' className='text-xs h-7 mt-1'>
-                            Crear Presupuesto
-                          </Button>
+                        <div className='space-y-3 text-xs'>
+                          <div className='flex items-center justify-between pb-1'>
+                            <span className='text-xs font-medium text-muted-foreground'>
+                              Presupuestos vinculados ({clientPresupuestos.length})
+                            </span>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              className='h-7 text-xs gap-1.5'
+                              onClick={() => setPresupuestoFormOpen(true)}
+                            >
+                              <FileText className='h-3.5 w-3.5' />
+                              <span>Crear presupuesto</span>
+                            </Button>
+                          </div>
+
+                          {clientPresupuestos.length > 0 ? (
+                            <div className='border rounded-lg overflow-hidden'>
+                              <table className='w-full text-left'>
+                                <thead className='bg-muted/40 border-b text-muted-foreground font-medium'>
+                                  <tr>
+                                    <th className='py-2 px-3'>Número</th>
+                                    <th className='py-2 px-3'>Fecha</th>
+                                    <th className='py-2 px-3'>Validez</th>
+                                    <th className='py-2 px-3 text-right'>Importe</th>
+                                    <th className='py-2 px-3 text-center'>Estado</th>
+                                    <th className='py-2 px-3 text-right'>Acción</th>
+                                  </tr>
+                                </thead>
+                                <tbody className='divide-y'>
+                                  {clientPresupuestos.map((p) => (
+                                    <tr key={p.id} className='hover:bg-muted/20'>
+                                      <td className='py-2.5 px-3 font-mono font-medium'>{p.numero}</td>
+                                      <td className='py-2.5 px-3 text-muted-foreground'>{p.fecha}</td>
+                                      <td className='py-2.5 px-3 text-muted-foreground'>{p.fechaValidez}</td>
+                                      <td className='py-2.5 px-3 text-right font-mono font-semibold'>
+                                        {p.total.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                                      </td>
+                                      <td className='py-2.5 px-3 text-center'>
+                                        <Badge
+                                          className={
+                                            p.estado === 'facturado'
+                                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-[10px]'
+                                              : p.estado === 'aceptado'
+                                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]'
+                                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px]'
+                                          }
+                                        >
+                                          {p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
+                                        </Badge>
+                                      </td>
+                                      <td className='py-2.5 px-3 text-right'>
+                                        <Button
+                                          size='sm'
+                                          variant='outline'
+                                          className='h-7 text-xs gap-1'
+                                          onClick={() => setPreviewPresupuesto(p)}
+                                        >
+                                          <Eye className='h-3.5 w-3.5' />
+                                          <span>Previsualizar</span>
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className='p-6 text-center text-xs text-muted-foreground space-y-2 border border-dashed rounded-lg'>
+                              <FileText className='h-8 w-8 mx-auto text-muted-foreground/50' />
+                              <p>No hay presupuestos pendientes para este cliente.</p>
+                              <Button
+                                size='sm'
+                                variant='outline'
+                                className='text-xs h-7 mt-1 gap-1.5'
+                                onClick={() => setPresupuestoFormOpen(true)}
+                              >
+                                <FileText className='h-3.5 w-3.5' />
+                                <span>Crear Presupuesto</span>
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -670,13 +960,31 @@ export function Clientes() {
                             </TableCell>
 
                             <TableCell>
-                              <span className='font-mono text-xs font-medium'>{cliente.cifNif}</span>
+                              {cliente.cifNif ? (
+                                <span className='font-mono text-xs font-medium'>{cliente.cifNif}</span>
+                              ) : (
+                                <Badge
+                                  variant='outline'
+                                  className='border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px]'
+                                >
+                                  Borrador (Sin CIF/NIF)
+                                </Badge>
+                              )}
                             </TableCell>
 
                             <TableCell>
                               <div className='space-y-0.5 text-xs text-muted-foreground'>
                                 {cliente.email && <div>{cliente.email}</div>}
                                 {cliente.telefono && <div>{cliente.telefono}</div>}
+                                {cliente.departamentos && cliente.departamentos.length > 0 && (
+                                  <div className='text-[11px] text-primary font-medium'>
+                                    +{cliente.departamentos.length}{' '}
+                                    {cliente.departamentos.length === 1
+                                      ? 'departamento'
+                                      : 'departamentos'}{' '}
+                                    ({cliente.departamentos.map((d) => d.nombre).join(', ')})
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
 
@@ -746,6 +1054,33 @@ export function Clientes() {
         onOpenChange={setDeleteDialogOpen}
         cliente={selectedCliente}
         onSuccess={() => refetch()}
+      />
+
+      {/* Diálogo de previsualización de factura */}
+      <FacturaPreviewDialog
+        open={previewFactura !== null}
+        onOpenChange={(open) => !open && setPreviewFactura(null)}
+        factura={previewFactura}
+        company={billing.company}
+      />
+
+      {/* Diálogo de creación de presupuesto */}
+      <PresupuestoFormDialog
+        open={presupuestoFormOpen}
+        onOpenChange={setPresupuestoFormOpen}
+        cliente={activeCliente}
+        existingPresupuestos={billing.presupuestos}
+      />
+
+      {/* Diálogo de previsualización de presupuesto */}
+      <PresupuestoPreviewDialog
+        open={previewPresupuesto !== null}
+        onOpenChange={(open) => !open && setPreviewPresupuesto(null)}
+        presupuesto={previewPresupuesto}
+        company={billing.company}
+        onConvertedToInvoice={() => {
+          setActiveTab('facturas')
+        }}
       />
     </>
   )

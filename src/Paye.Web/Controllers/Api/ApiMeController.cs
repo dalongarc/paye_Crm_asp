@@ -99,6 +99,11 @@ public sealed class ApiMeController(
             var url = item.Url == "/facturacion" ? "/facturas" : item.Url;
             var iconName = MapToLucideIcon(item.IconCssClass, item.Title);
             generalNavItems.Add(new ApiNavItemDto(item.Title, url, iconName));
+
+            if (url == "/facturas")
+            {
+                generalNavItems.Add(new ApiNavItemDto("Gastos y Trimestre", "/gastos", "Wallet"));
+            }
         }
 
         generalNavItems.Add(new ApiNavItemDto("Tareas y Operaciones", "/tasks", "ListTodo"));
@@ -178,6 +183,8 @@ public sealed class ApiMeController(
 
     private static string MapToLucideIcon(string iconClass, string title)
     {
+        if (iconClass.Contains("FileSignature", StringComparison.OrdinalIgnoreCase) || title.Contains("Documentaci", StringComparison.OrdinalIgnoreCase))
+            return "FileSignature";
         if (iconClass.Contains("Users", StringComparison.OrdinalIgnoreCase) || title.Contains("Clientes", StringComparison.OrdinalIgnoreCase))
             return "Users";
         if (iconClass.Contains("Receipt", StringComparison.OrdinalIgnoreCase) || title.Contains("Factura", StringComparison.OrdinalIgnoreCase))

@@ -16,6 +16,14 @@ public sealed class NotasController(
         [FromQuery] int page = 1,
         CancellationToken cancellationToken = default)
     {
+        var isBrowser = Request.Headers.UserAgent.ToString().Contains("Mozilla", StringComparison.OrdinalIgnoreCase);
+        var spaPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+
+        if (isBrowser && System.IO.File.Exists(spaPath) && !Request.Query.ContainsKey("razor"))
+        {
+            return PhysicalFile(spaPath, "text/html");
+        }
+
         bool? archivadaFilter = estado?.ToLowerInvariant() switch
         {
             "activas" => false,
@@ -191,6 +199,7 @@ public sealed class NotasController(
     }
 
     [HttpGet("/notas/api")]
+    [HttpGet("/api/notas")]
     public async Task<IActionResult> GetNotasJson(
         [FromQuery] string? q = null,
         [FromQuery] string? estado = null,
@@ -223,6 +232,7 @@ public sealed class NotasController(
     }
 
     [HttpPost("/notas/api")]
+    [HttpPost("/api/notas")]
     [Authorize(Policy = NotasPermissions.Crear)]
     public async Task<IActionResult> CreateNotaJson(
         [FromBody] CreateNotaInputModel input,
@@ -246,6 +256,7 @@ public sealed class NotasController(
     }
 
     [HttpPut("/notas/api/{id:guid}")]
+    [HttpPut("/api/notas/{id:guid}")]
     [Authorize(Policy = NotasPermissions.Editar)]
     public async Task<IActionResult> UpdateNotaJson(
         Guid id,
@@ -280,6 +291,7 @@ public sealed class NotasController(
     }
 
     [HttpDelete("/notas/api/{id:guid}")]
+    [HttpDelete("/api/notas/{id:guid}")]
     [Authorize(Policy = NotasPermissions.Borrar)]
     public async Task<IActionResult> DeleteNotaJson(
         Guid id,

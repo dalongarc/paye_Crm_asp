@@ -1,6 +1,6 @@
-# Arquitectura de Payé Base
+# Arquitectura de Payé Base & CRM
 
-**Payé Base** es la plantilla base single-tenant de Payé Digital en **ASP.NET Core MVC (.NET 10 LTS)** y **PostgreSQL**, diseñada para construir aplicaciones de gestión a medida para comercios y pequeñas empresas con bajo coste operativo, alta seguridad por defecto y mantenimiento sencillo.
+**Payé Base** es la plataforma single-tenant de Payé Digital en **ASP.NET Core (.NET 10 LTS)**, **React 19 (`/web`)** y **PostgreSQL 17**, diseñada para construir aplicaciones de gestión comercial, facturación **VERI\*FACTU** y documentación corporativa a medida para comercios y pequeñas empresas con bajo coste operativo, alta seguridad por defecto y mantenimiento sencillo.
 
 ---
 
@@ -11,19 +11,22 @@
    - Si falta una variable crítica al arrancar (`ValidateOnStart`), el servidor detiene el arranque inmediatamente.
    - Toda ruta exige usuario autenticado (`FallbackPolicy`), salvo `[AllowAnonymous]` explícito (`/health`, login y recuperación de contraseña).
 3. **Módulos autocontenidos en compilación**: Cada módulo de negocio vive en `Modules/<NombreModulo>/` dentro de `Paye.Core`, `Paye.Infrastructure` y `Paye.Web`. No se usan plugins dinámicos en tiempo de ejecución.
-4. **Componentes nativos de Microsoft primero**: Se priorizan las piezas oficiales de ASP.NET Core 10 y EF Core 10, evitando dependencias comerciales o innecesarias (sin MediatR, sin AutoMapper, sin repositorios genéricos, sin Redis, sin Hangfire).
+4. **Frontend SPA aislado en `/web`**: Interfaz moderna en React 19 + TypeScript + Vite + Tailwind CSS v4 siguiendo principios de **Apple HIG**, empaquetada como **PWA** y servida desde `src/Paye.Web/wwwroot` bajo una política CSP estricta sin `unsafe-inline` ni `unsafe-eval`.
+5. **Componentes nativos de Microsoft primero**: Se priorizan las piezas oficiales de ASP.NET Core 10 y EF Core 10, evitando dependencias comerciales o innecesarias (sin MediatR, sin AutoMapper, sin repositorios genéricos, sin Redis, sin Hangfire).
 
 ---
 
-## 2. Estructura de la Solución (`Paye.sln`)
+## 2. Estructura de la Solución (`Paye.sln` + `/web`)
 
 ```mermaid
 flowchart TD
-    Web["Paye.Web (MVC, Vistas Razor, Auth, Middleware)"]
-    Infra["Paye.Infrastructure (EF Core, PostgreSQL, Identity, Archivos, Auditoría)"]
+    SPA["/web (React 19, Vite, Tailwind v4, TanStack Router/Query, PWA)"]
+    Web["Paye.Web (API REST, Auth Cookie HttpOnly, Middleware CSP, Módulos)"]
+    Infra["Paye.Infrastructure (EF Core 10, PostgreSQL 17, Identity, Archivos, Auditoría)"]
     Core["Paye.Core (Entidades, Contratos, Permisos, ValueObjects, Configuración)"]
     Tests["Paye.Tests (xUnit + Testcontainers PostgreSQL)"]
 
+    SPA -->|Compila en wwwroot / Consume /api/*| Web
     Web --> Infra
     Web --> Core
     Infra --> Core
@@ -33,7 +36,7 @@ flowchart TD
 ```
 
 ### `src/Paye.Core`
-- **Responsabilidad**: Modelo de dominio, contratos de servicios, definiciones de permisos (`IPermissionDefinitionProvider`), contratos de navegación (`IModuleNavigationProvider`), objetos de valor (`Money`, `VatRate`), utilidades horarias (`MadridTimeConverter`) y clases de configuración validadas (`DatabaseSettings`, `ClientSettings`, `SecuritySettings`, `SmtpSettings`, `ExternalIntegrationsSettings`).
+- **Responsabilidad**: Modelo de dominio, contratos de servicios (`IClientesService`, `IFacturacionService`, `IDocumentacionService`, `INotasService`), definiciones de permisos (`IPermissionDefinitionProvider`), contratos de navegación (`IModuleNavigationProvider`), objetos de valor (`Money`, `VatRate`), utilidades horarias (`MadridTimeConverter`) y clases de configuración validadas (`DatabaseSettings`, `ClientSettings`, `SecuritySettings`, `SmtpSettings`, `ExternalIntegrationsSettings`).
 - **Restricción clave**: No depende de EF Core ni de ASP.NET Core MVC.
 
 ### `src/Paye.Infrastructure`
@@ -42,6 +45,7 @@ flowchart TD
   - Descubrimiento automático de configuraciones `IEntityTypeConfiguration<T>` (`ApplyConfigurationsFromAssembly`), permitiendo que cada módulo defina sus propias tablas sin acoplar propiedades `DbSet<T>` en `PayeDbContext`.
   - Sellado automático en `SaveChangesAsync` de auditoría (`CreatedAtUtc`, `CreatedBy`, `UpdatedAtUtc`, `UpdatedBy`), borrado lógico (`ISoftDeletable` con filtro global `HasQueryFilter(e => !e.IsDeleted)`) y token de concurrencia optimista nativo de PostgreSQL (`xmin` mapeado a `RowVersion`).
   - Almacenamiento privado de archivos (`LocalPrivateFileStorage`) con verificación de firmas binarias (*magic bytes*).
+  - Proveedor de completado con IA para documentación (`DocumentoGeminiCompletionProvider`).
   - Exportación y anonimización RGPD (`GdprUserDataService`).
   - Siembra idempotente de roles, permisos y primer `Propietario` (`IdentitySeeder`).
 
@@ -50,8 +54,13 @@ flowchart TD
   - Composición de dependencias y tubería HTTP en `Program.cs`.
   - Cabeceras de seguridad y CSP estricta sin `unsafe-inline` ni `unsafe-eval` (`SecurityHeadersMiddleware`).
   - Autorización granular mediante `PermissionPolicyProvider` y `PermissionAuthorizationHandler`.
-  - Controladores y vistas Razor transversales (`AccountController`, `UsersController`, `AuditController`, `PrivateFilesController`, `HomeController`) y vistas modulares en `/Modules/{Modulo}/Views/{Vista}.cshtml`.
-  - Menú lateral dinámico (`SidebarNavigationViewComponent`) filtrado según los permisos del usuario autenticado.
+  - Endpoints API JSON para el frontend SPA (`/api/auth`, `/api/me`, `/api/users`, `/api/clientes`, `/api/facturacion`, `/api/documentacion`, `/api/notas`) y fallback SPA (`MapFallbackToFile("index.html")`).
+
+### `/web`
+- **Responsabilidad**:
+  - SPA React 19 con TanStack Router y TanStack Query v5.
+  - Capa de acceso a datos desacoplada en `/web/src/api/` con interfaces tipadas e implementaciones `real/` y `mock/` (excluidas en producción).
+  - Módulos visuales para Clientes, Facturas VERI\*FACTU, Presupuestos, Gastos, Resumen Fiscal Trimestral, Documentación Corporativa A4, Notas y Administración de Usuarios.
 
 ### `tests/Paye.Tests`
 - **Responsabilidad**: Pruebas unitarias y de integración reales contra contenedores efímeros de PostgreSQL 17 (`Testcontainers.PostgreSql`), protegidas por `TestDatabaseGuard` para impedir cualquier ejecución accidental contra bases de datos reales.

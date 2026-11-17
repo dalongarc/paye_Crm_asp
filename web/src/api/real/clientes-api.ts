@@ -13,6 +13,7 @@ export class RealClientesApi implements IClientesApi {
     const params = new URLSearchParams()
     if (query?.searchTerm) params.set('SearchTerm', query.searchTerm)
     if (query?.activo !== undefined) params.set('Activo', String(query.activo))
+    if (query?.esBorrador !== undefined) params.set('EsBorrador', String(query.esBorrador))
     if (query?.sortBy) params.set('SortBy', query.sortBy)
     if (query?.sortDescending !== undefined)
       params.set('SortDescending', String(query.sortDescending))

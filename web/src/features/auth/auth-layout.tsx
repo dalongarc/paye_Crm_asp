@@ -1,4 +1,5 @@
 import { Logo } from '@/assets/logo'
+import { PwaInstallButton } from '@/components/pwa-install-button'
 
 type AuthLayoutProps = {
   children: React.ReactNode
@@ -10,9 +11,12 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       <div className='mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:p-8'>
         <div className='mb-4 flex items-center justify-center gap-2'>
           <Logo className='h-6 w-6' />
-          <h1 className='text-xl font-semibold tracking-tight'>Payé Base</h1>
+          <h1 className='text-xl font-semibold tracking-tight'>Payé CRM</h1>
         </div>
         {children}
+        <div className='pt-3 flex justify-center'>
+          <PwaInstallButton variant='compact' />
+        </div>
       </div>
     </div>
   )

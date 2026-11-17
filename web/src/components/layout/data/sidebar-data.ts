@@ -19,6 +19,9 @@ import {
   MessagesSquare,
   ShieldCheck,
   Command,
+  Wallet,
+  FileText,
+  FileSignature,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -53,6 +56,21 @@ export const sidebarData: SidebarData = {
           title: 'Facturación',
           url: '/facturas',
           icon: ShieldCheck,
+        },
+        {
+          title: 'Documentación',
+          url: '/documentacion',
+          icon: FileSignature,
+        },
+        {
+          title: 'Gastos y Trimestre',
+          url: '/gastos',
+          icon: Wallet,
+        },
+        {
+          title: 'Notas',
+          url: '/notas',
+          icon: FileText,
         },
         {
           title: 'Sistema de Diseño',

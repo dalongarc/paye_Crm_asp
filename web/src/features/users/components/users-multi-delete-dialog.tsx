@@ -16,7 +16,7 @@ type UserMultiDeleteDialogProps<TData> = {
   table: Table<TData>
 }
 
-const CONFIRM_WORD = 'DELETE'
+const CONFIRM_WORD = 'ELIMINAR'
 
 export function UsersMultiDeleteDialog<TData>({
   open,
@@ -29,22 +29,22 @@ export function UsersMultiDeleteDialog<TData>({
 
   const handleDelete = () => {
     if (value.trim() !== CONFIRM_WORD) {
-      toast.error(`Please type "${CONFIRM_WORD}" to confirm.`)
+      toast.error(`Escribe "${CONFIRM_WORD}" para confirmar.`)
       return
     }
 
     onOpenChange(false)
 
-    toast.promise(sleep(2000), {
-      loading: 'Deleting users...',
+    toast.promise(sleep(1000), {
+      loading: 'Eliminando usuarios...',
       success: () => {
         setValue('')
         table.resetRowSelection()
-        return `Deleted ${selectedRows.length} ${
-          selectedRows.length > 1 ? 'users' : 'user'
+        return `Eliminados ${selectedRows.length} ${
+          selectedRows.length > 1 ? 'usuarios' : 'usuario'
         }`
       },
-      error: 'Error',
+      error: 'Error al eliminar',
     })
   }
 
@@ -60,8 +60,8 @@ export function UsersMultiDeleteDialog<TData>({
             className='me-1 inline-block stroke-destructive'
             size={18}
           />{' '}
-          Delete {selectedRows.length}{' '}
-          {selectedRows.length > 1 ? 'users' : 'user'}
+          Eliminar {selectedRows.length}{' '}
+          {selectedRows.length > 1 ? 'usuarios' : 'usuario'}
         </span>
       }
       desc={
@@ -74,29 +74,29 @@ export function UsersMultiDeleteDialog<TData>({
           className='space-y-4'
         >
           <p className='mb-2'>
-            Are you sure you want to delete the selected users? <br />
-            This action cannot be undone.
+            ¿Estás seguro de que deseas eliminar los usuarios seleccionados? <br />
+            Esta acción no se puede deshacer.
           </p>
 
           <Label className='my-4 flex flex-col items-start gap-1.5'>
-            <span className=''>Confirm by typing "{CONFIRM_WORD}":</span>
+            <span className=''>Confirma escribiendo "{CONFIRM_WORD}":</span>
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={`Type "${CONFIRM_WORD}" to confirm.`}
+              placeholder={`Escribe "${CONFIRM_WORD}" para confirmar.`}
               autoFocus
             />
           </Label>
 
           <Alert variant='destructive'>
-            <AlertTitle>Warning!</AlertTitle>
+            <AlertTitle>¡Atención!</AlertTitle>
             <AlertDescription>
-              Please be careful, this operation can not be rolled back.
+              Por favor ten cuidado, esta operación no se puede revertir.
             </AlertDescription>
           </Alert>
         </form>
       }
-      confirmText='Delete'
+      confirmText='Eliminar'
       destructive
     />
   )

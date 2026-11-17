@@ -65,11 +65,33 @@ export async function apiFetch<T>(
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    })
+  } catch {
+    // Reintentar una vez ante reinicio momentáneo del servidor o cierre de socket keep-alive
+    await new Promise((r) => setTimeout(r, 350))
+    if (isMutating && !options.skipAntiforgery) {
+      clearAntiforgeryToken()
+      try {
+        const freshToken = await getAntiforgeryToken()
+        if (freshToken) {
+          headers.set('RequestVerificationToken', freshToken)
+        }
+      } catch {
+        // Ignorar
+      }
+    }
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    })
+  }
 
   if (response.status === 409) {
     let problemDetails: ProblemDetails | undefined

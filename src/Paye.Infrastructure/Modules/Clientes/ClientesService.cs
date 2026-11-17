@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Paye.Core.Auditing;
 using Paye.Core.Modules.Clientes;
@@ -9,6 +10,12 @@ public sealed class ClientesService(
     PayeDbContext dbContext,
     IAuditLogger auditLogger) : IClientesService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+
     public async Task<ClientesPagedResult> GetPagedAsync(
         ClienteFilterQuery query,
         CancellationToken cancellationToken = default)
@@ -25,13 +32,20 @@ public sealed class ClientesService(
                 c.NombreFiscal.Contains(term) ||
                 c.NombreComercial.Contains(term) ||
                 c.CifNif.Contains(term) ||
-                c.Email.Contains(term));
+                c.Email.Contains(term) ||
+                c.Telefono.Contains(term));
         }
 
         if (query.Activo.HasValue)
         {
             var activo = query.Activo.Value;
             clientesQuery = clientesQuery.Where(c => c.Activo == activo);
+        }
+
+        if (query.EsBorrador.HasValue)
+        {
+            var esBorrador = query.EsBorrador.Value;
+            clientesQuery = clientesQuery.Where(c => c.EsBorrador == esBorrador);
         }
 
         clientesQuery = (query.SortBy?.ToLowerInvariant(), query.SortDescending) switch
@@ -49,11 +63,12 @@ public sealed class ClientesService(
 
         var totalCount = await clientesQuery.CountAsync(cancellationToken);
 
-        var items = await clientesQuery
+        var entities = await clientesQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => MapToDto(c))
             .ToListAsync(cancellationToken);
+
+        var items = entities.Select(MapToDto).ToList();
 
         return new ClientesPagedResult(items, totalCount, page, pageSize);
     }
@@ -62,10 +77,10 @@ public sealed class ClientesService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        return await dbContext.Set<Cliente>().AsNoTracking()
-            .Where(c => c.Id == id)
-            .Select(c => MapToDto(c))
-            .FirstOrDefaultAsync(cancellationToken);
+        var entity = await dbContext.Set<Cliente>().AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        return entity is null ? null : MapToDto(entity);
     }
 
     public async Task<ClientesOperationResult> CreateAsync(
@@ -73,7 +88,9 @@ public sealed class ClientesService(
         CancellationToken cancellationToken = default)
     {
         var nombreFiscal = request.NombreFiscal.Trim();
-        var cifNif = request.CifNif.Trim().ToUpperInvariant();
+        var cifNif = request.CifNif?.Trim().ToUpperInvariant() ?? string.Empty;
+        var esBorrador = string.IsNullOrWhiteSpace(cifNif) || (request.EsBorrador ?? false);
+        var departamentos = NormalizeDepartamentos(request.Departamentos);
 
         var cliente = new Cliente
         {
@@ -88,17 +105,20 @@ public sealed class ClientesService(
             Ciudad = request.Ciudad?.Trim() ?? string.Empty,
             Provincia = request.Provincia?.Trim() ?? string.Empty,
             Activo = request.Activo,
+            EsBorrador = esBorrador,
+            DepartamentosJson = JsonSerializer.Serialize(departamentos, JsonOptions),
             Notas = request.Notas?.Trim()
         };
 
         dbContext.Set<Cliente>().Add(cliente);
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        var cifLabel = string.IsNullOrWhiteSpace(cliente.CifNif) ? "BORRADOR SIN CIF/NIF" : cliente.CifNif;
         await auditLogger.LogCriticalActionAsync(
             action: "Clientes.Create",
             entityName: nameof(Cliente),
             entityId: cliente.Id.ToString(),
-            summary: $"Cliente creado: '{cliente.NombreFiscal}' ({cliente.CifNif}).",
+            summary: $"Cliente creado: '{cliente.NombreFiscal}' ({cifLabel}, Dptos={departamentos.Count}).",
             cancellationToken: cancellationToken);
 
         return new ClientesOperationResult(ClientesOperationStatus.Success, ClienteId: cliente.Id);
@@ -122,9 +142,12 @@ public sealed class ClientesService(
         // Concurrencia optimista mediante columna xmin (RowVersion) de PostgreSQL
         dbContext.Entry(cliente).Property(c => c.RowVersion).OriginalValue = request.RowVersion;
 
+        var cifNif = request.CifNif?.Trim().ToUpperInvariant() ?? string.Empty;
+        var esBorrador = string.IsNullOrWhiteSpace(cifNif) || (request.EsBorrador ?? false);
+
         cliente.NombreFiscal = request.NombreFiscal.Trim();
         cliente.NombreComercial = request.NombreComercial?.Trim() ?? string.Empty;
-        cliente.CifNif = request.CifNif.Trim().ToUpperInvariant();
+        cliente.CifNif = cifNif;
         cliente.Email = request.Email?.Trim() ?? string.Empty;
         cliente.Telefono = request.Telefono?.Trim() ?? string.Empty;
         cliente.Direccion = request.Direccion?.Trim() ?? string.Empty;
@@ -132,7 +155,14 @@ public sealed class ClientesService(
         cliente.Ciudad = request.Ciudad?.Trim() ?? string.Empty;
         cliente.Provincia = request.Provincia?.Trim() ?? string.Empty;
         cliente.Activo = request.Activo;
+        cliente.EsBorrador = esBorrador;
         cliente.Notas = request.Notas?.Trim();
+
+        if (request.Departamentos is not null)
+        {
+            var departamentos = NormalizeDepartamentos(request.Departamentos);
+            cliente.DepartamentosJson = JsonSerializer.Serialize(departamentos, JsonOptions);
+        }
 
         try
         {
@@ -148,11 +178,12 @@ public sealed class ClientesService(
                 CurrentCliente: currentDto);
         }
 
+        var cifLabel = string.IsNullOrWhiteSpace(cliente.CifNif) ? "BORRADOR SIN CIF/NIF" : cliente.CifNif;
         await auditLogger.LogCriticalActionAsync(
             action: "Clientes.Update",
             entityName: nameof(Cliente),
             entityId: cliente.Id.ToString(),
-            summary: $"Cliente actualizado: '{cliente.NombreFiscal}' ({cliente.CifNif}, Activo={cliente.Activo}).",
+            summary: $"Cliente actualizado: '{cliente.NombreFiscal}' ({cifLabel}, Activo={cliente.Activo}, Borrador={cliente.EsBorrador}).",
             cancellationToken: cancellationToken);
 
         return new ClientesOperationResult(ClientesOperationStatus.Success, ClienteId: cliente.Id);
@@ -173,7 +204,7 @@ public sealed class ClientesService(
         }
 
         var nombre = cliente.NombreFiscal;
-        var cif = cliente.CifNif;
+        var cif = string.IsNullOrWhiteSpace(cliente.CifNif) ? "SIN CIF/NIF" : cliente.CifNif;
 
         // El interceptor AuditableEntitySaveChangesInterceptor convierte el borrado físico en lógico (soft delete)
         dbContext.Set<Cliente>().Remove(cliente);
@@ -189,22 +220,75 @@ public sealed class ClientesService(
         return new ClientesOperationResult(ClientesOperationStatus.Success, ClienteId: id);
     }
 
-    private static ClienteDto MapToDto(Cliente c) => new(
-        c.Id,
-        c.NombreFiscal,
-        c.NombreComercial,
-        c.CifNif,
-        c.Email,
-        c.Telefono,
-        c.Direccion,
-        c.CodigoPostal,
-        c.Ciudad,
-        c.Provincia,
-        c.Activo,
-        c.Notas,
-        c.RowVersion,
-        c.CreatedAtUtc,
-        c.CreatedBy,
-        c.UpdatedAtUtc,
-        c.UpdatedBy);
+    private static List<ClienteDepartamentoDto> NormalizeDepartamentos(IReadOnlyList<ClienteDepartamentoDto>? items)
+    {
+        if (items is null || items.Count == 0)
+        {
+            return [];
+        }
+
+        var result = new List<ClienteDepartamentoDto>();
+        foreach (var d in items)
+        {
+            var nombre = d.Nombre?.Trim() ?? string.Empty;
+            var telefono = d.Telefono?.Trim() ?? string.Empty;
+            var persona = d.PersonaContacto?.Trim() ?? string.Empty;
+            var email = d.Email?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(nombre) &&
+                string.IsNullOrWhiteSpace(telefono) &&
+                string.IsNullOrWhiteSpace(persona) &&
+                string.IsNullOrWhiteSpace(email))
+            {
+                continue;
+            }
+
+            result.Add(new ClienteDepartamentoDto(
+                Id: string.IsNullOrWhiteSpace(d.Id) ? Guid.NewGuid().ToString("N") : d.Id.Trim(),
+                Nombre: string.IsNullOrWhiteSpace(nombre) ? "General" : (nombre.Length > 100 ? nombre[..100] : nombre),
+                Telefono: string.IsNullOrWhiteSpace(telefono) ? null : (telefono.Length > 30 ? telefono[..30] : telefono),
+                PersonaContacto: string.IsNullOrWhiteSpace(persona) ? null : (persona.Length > 100 ? persona[..100] : persona),
+                Email: string.IsNullOrWhiteSpace(email) ? null : (email.Length > 100 ? email[..100] : email)));
+        }
+
+        return result;
+    }
+
+    private static ClienteDto MapToDto(Cliente c)
+    {
+        List<ClienteDepartamentoDto> departamentos;
+        try
+        {
+            departamentos = string.IsNullOrWhiteSpace(c.DepartamentosJson)
+                ? []
+                : (JsonSerializer.Deserialize<List<ClienteDepartamentoDto>>(c.DepartamentosJson, JsonOptions) ?? []);
+        }
+        catch
+        {
+            departamentos = [];
+        }
+
+        var esBorrador = c.EsBorrador || string.IsNullOrWhiteSpace(c.CifNif);
+
+        return new ClienteDto(
+            c.Id,
+            c.NombreFiscal,
+            c.NombreComercial,
+            c.CifNif,
+            c.Email,
+            c.Telefono,
+            c.Direccion,
+            c.CodigoPostal,
+            c.Ciudad,
+            c.Provincia,
+            c.Activo,
+            c.Notas,
+            c.RowVersion,
+            c.CreatedAtUtc,
+            c.CreatedBy,
+            c.UpdatedAtUtc,
+            c.UpdatedBy,
+            esBorrador,
+            departamentos);
+    }
 }

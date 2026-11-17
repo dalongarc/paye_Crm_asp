@@ -101,22 +101,22 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter users...'
+        searchPlaceholder='Filtrar usuarios...'
         searchKey='username'
         filters={[
           {
             columnId: 'status',
-            title: 'Status',
+            title: 'Estado',
             options: [
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' },
-              { label: 'Invited', value: 'invited' },
-              { label: 'Suspended', value: 'suspended' },
+              { label: 'Activo', value: 'active' },
+              { label: 'Inactivo', value: 'inactive' },
+              { label: 'Invitado', value: 'invited' },
+              { label: 'Suspendido', value: 'suspended' },
             ],
           },
           {
             columnId: 'role',
-            title: 'Role',
+            title: 'Rol',
             options: roles.map((role) => ({ ...role })),
           },
         ]}

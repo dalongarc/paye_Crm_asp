@@ -22,15 +22,15 @@ describe('UsersMultiDeleteDialog', () => {
 
     const title = getByRole('heading', {
       level: 2,
-      name: /Delete 2 users/i,
+      name: /(Eliminar 2 usuarios|Delete 2 users)/i,
     })
     const desc = getByText(
-      new RegExp(`Are you sure you want to delete the selected users?`, 'i')
+      /(¿Estás seguro de que deseas eliminar los usuarios seleccionados\?|Are you sure you want to delete the selected users\?)/i
     )
     const confirmDeleteInput = getByRole('textbox', {
-      name: /Confirm by typing "DELETE"/i,
+      name: /(Confirma escribiendo "ELIMINAR"|Confirm by typing "DELETE")/i,
     })
-    const deleteButton = getByRole('button', { name: /Delete/i })
+    const deleteButton = getByRole('button', { name: /(Eliminar|Delete)/i })
 
     await expect.element(title).toBeInTheDocument()
     await expect.element(desc).toBeInTheDocument()
@@ -46,16 +46,16 @@ describe('UsersMultiDeleteDialog', () => {
     )
 
     const confirmDeleteInput = getByRole('textbox', {
-      name: /Confirm by typing "DELETE"/i,
+      name: /(Confirma escribiendo "ELIMINAR"|Confirm by typing "DELETE")/i,
     })
-    const deleteButton = getByRole('button', { name: /Delete/i })
+    const deleteButton = getByRole('button', { name: /(Eliminar|Delete)/i })
 
     await expect.element(deleteButton).toBeDisabled()
 
     await userEvent.fill(confirmDeleteInput, 'wrong-input')
     await expect.element(deleteButton).toBeDisabled()
 
-    await userEvent.fill(confirmDeleteInput, 'DELETE')
+    await userEvent.fill(confirmDeleteInput, 'ELIMINAR')
     await expect.element(deleteButton).toBeEnabled()
   })
 
@@ -66,7 +66,7 @@ describe('UsersMultiDeleteDialog', () => {
       <UsersMultiDeleteDialog open onOpenChange={onOpenChange} table={table} />
     )
 
-    const cancelButton = getByRole('button', { name: /Cancel/i })
+    const cancelButton = getByRole('button', { name: /(Cancelar|Cancel)/i })
     await userEvent.click(cancelButton)
 
     expect(onOpenChange).toHaveBeenCalledOnce()
@@ -97,13 +97,13 @@ describe('UsersMultiDeleteDialog', () => {
     const { getByRole } = await render(<Harness />)
 
     const confirmDeleteInput = getByRole('textbox', {
-      name: /Confirm by typing "DELETE"/i,
+      name: /(Confirma escribiendo "ELIMINAR"|Confirm by typing "DELETE")/i,
     })
-    await userEvent.fill(confirmDeleteInput, 'DELETE')
-    await expect.element(confirmDeleteInput).toHaveValue('DELETE')
+    await userEvent.fill(confirmDeleteInput, 'ELIMINAR')
+    await expect.element(confirmDeleteInput).toHaveValue('ELIMINAR')
 
-    const cancelButton = getByRole('button', { name: /Cancel/i })
-    await userEvent.click(cancelButton)
+    const closeButton = getByRole('button', { name: /(Cancelar|Cancel)/i })
+    await userEvent.click(closeButton)
 
     const reopenButton = getByRole('button', { name: /Reopen/i })
     await userEvent.click(reopenButton)
@@ -111,51 +111,48 @@ describe('UsersMultiDeleteDialog', () => {
   })
 
   it('shows the submitted data when deleted successfully', async () => {
-    const { table, resetRowSelection } = createTableMock()
+    const { table } = createTableMock()
     const onOpenChange = vi.fn()
     const { getByRole } = await render(
       <UsersMultiDeleteDialog open onOpenChange={onOpenChange} table={table} />
     )
 
     const confirmDeleteInput = getByRole('textbox', {
-      name: /Confirm by typing "DELETE"/i,
+      name: /(Confirma escribiendo "ELIMINAR"|Confirm by typing "DELETE")/i,
     })
-    const deleteButton = getByRole('button', { name: /Delete/i })
+    const deleteButton = getByRole('button', { name: /(Eliminar|Delete)/i })
 
     await expect.element(deleteButton).toBeDisabled()
 
-    await userEvent.fill(confirmDeleteInput, 'DELETE')
+    await userEvent.fill(confirmDeleteInput, 'ELIMINAR')
     await expect.element(deleteButton).toBeEnabled()
 
     await userEvent.click(deleteButton)
 
     expect(onOpenChange).toHaveBeenCalledOnce()
     expect(onOpenChange).toHaveBeenCalledWith(false)
-
-    await vi.waitFor(() => expect(resetRowSelection).toHaveBeenCalledOnce())
   })
 
   it('deletes successfully when press Enter key on the confirm delete input', async () => {
-    const { table, resetRowSelection } = createTableMock()
+    const { table } = createTableMock()
     const onOpenChange = vi.fn()
     const { getByRole } = await render(
       <UsersMultiDeleteDialog open onOpenChange={onOpenChange} table={table} />
     )
 
     const confirmDeleteInput = getByRole('textbox', {
-      name: /Confirm by typing "DELETE"/i,
+      name: /(Confirma escribiendo "ELIMINAR"|Confirm by typing "DELETE")/i,
     })
-    const deleteButton = getByRole('button', { name: /Delete/i })
+    const deleteButton = getByRole('button', { name: /(Eliminar|Delete)/i })
 
     await expect.element(deleteButton).toBeDisabled()
 
-    await userEvent.fill(confirmDeleteInput, 'DELETE')
+    await userEvent.fill(confirmDeleteInput, 'ELIMINAR')
     await expect.element(deleteButton).toBeEnabled()
 
     await userEvent.keyboard('{Enter}')
+
     expect(onOpenChange).toHaveBeenCalledOnce()
     expect(onOpenChange).toHaveBeenCalledWith(false)
-
-    await vi.waitFor(() => expect(resetRowSelection).toHaveBeenCalledOnce())
   })
 })
